@@ -1,6 +1,7 @@
 require("mason").setup()
 require("mason-lspconfig").setup({
   ensure_installed = {
+    "html",
     "lua_ls",
     "pyright",
     "terraformls",
@@ -121,6 +122,12 @@ M.defaults = function()
   }
 
   require("lspconfig").ts_ls.setup {
+    on_attach = M.on_attach,
+    on_init = M.on_init,
+    capabilities = M.capabilities,
+  }
+
+  require("lspconfig").html.setup {
     on_attach = M.on_attach,
     on_init = M.on_init,
     capabilities = M.capabilities,
