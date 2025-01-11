@@ -5,6 +5,7 @@ require("mason-lspconfig").setup({
     "pyright",
     "terraformls",
     "tflint",
+    "ts_ls"
   },
 })
 
@@ -117,6 +118,12 @@ M.defaults = function()
         },
       },
     },
+  }
+
+  require("lspconfig").ts_ls.setup {
+    on_attach = M.on_attach,
+    on_init = M.on_init,
+    capabilities = M.capabilities,
   }
 end
 
