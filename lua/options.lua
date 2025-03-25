@@ -1,6 +1,7 @@
 local o = vim.o
 local opt = vim.opt
 local g = vim.g
+local api = vim.api
 
 o.laststatus = 3
 o.showmode = false
@@ -49,3 +50,11 @@ o.updatetime = 250
 
 -- bufferline.nvim
 o.termguicolors = true
+
+-- Commentstring
+api.nvim_create_autocmd("FileType", {
+  pattern = "terraform",
+  callback = function()
+    opt.commentstring = "# %s"
+  end,
+})
