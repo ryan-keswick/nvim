@@ -2,6 +2,7 @@ require("mason").setup()
 require("mason-lspconfig").setup({
   ensure_installed = {
     "html",
+    "jsonls",
     "lua_ls",
     "pyright",
     "terraformls",
@@ -131,6 +132,23 @@ M.defaults = function()
     on_attach = M.on_attach,
     on_init = M.on_init,
     capabilities = M.capabilities,
+  }
+
+  local ok_schemastore, schemastore = pcall(require, "schemastore")
+  require("lspconfig").jsonls.setup {
+    on_attach = M.on_attach,
+    on_init = M.on_init,
+    capabilities = M.capabilities,
+
+    settings = {
+      json = {
+        validate = { enable = true },
+        format = { enable = true },
+        schemas = ok_schemastore and schemastore.json.schemas() or {}, -- fallback
+        schemaDownload = { enable = true },
+        trace = { server = "verbose" },
+      },
+    },
   }
 end
 
