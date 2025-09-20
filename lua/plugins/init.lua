@@ -109,7 +109,12 @@ return {
       --    cmp.event:on("confirm_done", cmp_autopairs.on_confirm_done())
       --  end,
       -- },
-    }
+    },
+    config = function()
+      local cmp = require "cmp"
+      local opts = require "plugins.configs.cmp"
+      cmp.setup(opts)
+    end,
   },
 
   {
