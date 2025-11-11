@@ -61,13 +61,15 @@ M.capabilities.textDocument.completion.completionItem = {
 
 -- defaults
 M.defaults = function()
-  local lsp = require("lspconfig")
+  -- Set default config for all LSP servers
+  vim.lsp.config['*'] = {
+    on_attach = M.on_attach,
+    on_init = M.on_init,
+    capabilities = M.capabilities,
+  }
 
   -- Lua
-  lsp.lua_ls.setup {
-    on_attach = M.on_attach,
-    capabilities = M.capabilities,
-    on_init = M.on_init,
+  vim.lsp.config.lua_ls = {
     settings = {
       Lua = {
         diagnostics = { globals = { "vim" } },
@@ -85,20 +87,13 @@ M.defaults = function()
     },
   }
 
-  -- Terraform
-  lsp.terraformls.setup { on_attach = M.on_attach, on_init = M.on_init, capabilities = M.capabilities }
-  lsp.tflint.setup { on_attach = M.on_attach, on_init = M.on_init, capabilities = M.capabilities }
-
   -- Python (Poetry env)
   local poetry_env_ok, poetry_env_path = pcall(function()
     local p = vim.fn.systemlist("poetry env info -p")[1]
     return (p and #p > 0) and (p .. "/bin/python") or nil
   end)
 
-  lsp.pyright.setup {
-    on_attach = M.on_attach,
-    on_init = M.on_init,
-    capabilities = M.capabilities,
+  vim.lsp.config.pyright = {
     settings = {
       python = {
         pythonPath = poetry_env_ok and poetry_env_path or vim.fn.exepath("python3"),
@@ -114,10 +109,8 @@ M.defaults = function()
   }
 
   -- React / TS core (VTSLS only)
-  lsp.vtsls.setup {
-    on_attach = M.on_attach,
-    -- on_init = M.on_init,
-    capabilities = M.capabilities,
+  vim.lsp.config.vtsls = {
+    on_init = nil, -- Override to disable on_init for vtsls
     settings = {
       vtsls = { enableMoveToFileCodeAction = true, tsserver = { globalPlugins = {} } },
       typescript = {
@@ -139,27 +132,14 @@ M.defaults = function()
     },
   }
 
-  -- Tailwind CSS
-  lsp.tailwindcss.setup { on_attach = M.on_attach, on_init = M.on_init, capabilities = M.capabilities }
-
   -- Emmet (React JSX/TSX snippets)
-  lsp.emmet_ls.setup {
-    on_attach = M.on_attach,
-    on_init = M.on_init,
-    capabilities = M.capabilities,
+  vim.lsp.config.emmet_ls = {
     filetypes = { "html", "css", "javascriptreact", "typescriptreact", "less", "sass", "scss" },
   }
 
-  -- CSS / HTML
-  lsp.cssls.setup { on_attach = M.on_attach, on_init = M.on_init, capabilities = M.capabilities }
-  lsp.html.setup { on_attach = M.on_attach, on_init = M.on_init, capabilities = M.capabilities }
-
   -- JSON
   local ok_schemastore, schemastore = pcall(require, "schemastore")
-  lsp.jsonls.setup {
-    on_attach = M.on_attach,
-    on_init = M.on_init,
-    capabilities = M.capabilities,
+  vim.lsp.config.jsonls = {
     settings = {
       json = {
         validate = { enable = true },
@@ -172,15 +152,32 @@ M.defaults = function()
   }
 
   -- ESLint
-  lsp.eslint.setup {
+  vim.lsp.config.eslint = {
     on_attach = function(client, bufnr)
       M.on_attach(client, bufnr)
       -- Uncomment to auto-fix on save:
-      -- vim.api.nvim_create_autocmd("BufWritePre", { buffer = bufnr, command = "EslintFixAll" })
+      vim.api.nvim_create_autocmd("BufWritePre", { buffer = bufnr, command = "EslintFixAll" })
     end,
-    on_init = M.on_init,
-    capabilities = M.capabilities,
   }
+
+  -- Enable all configured LSP servers
+  local servers = {
+    'lua_ls',
+    'terraformls',
+    'tflint',
+    'pyright',
+    'vtsls',
+    'tailwindcss',
+    'emmet_ls',
+    'cssls',
+    'html',
+    'jsonls',
+    'eslint',
+  }
+
+  for _, server in ipairs(servers) do
+    vim.lsp.enable(server)
+  end
 end
 
 return M
