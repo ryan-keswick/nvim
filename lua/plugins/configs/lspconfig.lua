@@ -160,6 +160,11 @@ M.defaults = function()
     end,
   }
 
+  -- Terraform (include Terragrunt .hcl files)
+  vim.lsp.config.terraformls = {
+    filetypes = { "terraform", "terraform-vars", "hcl" },
+  }
+
   -- Enable all configured LSP servers
   local servers = {
     'lua_ls',

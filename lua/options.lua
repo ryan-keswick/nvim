@@ -59,6 +59,16 @@ api.nvim_create_autocmd("FileType", {
   end,
 })
 
+-- Detect .hcl files (Terragrunt) as hcl filetype
+vim.filetype.add({
+  extension = {
+    hcl = "hcl",
+  },
+  filename = {
+    ["terragrunt.hcl"] = "hcl",
+  },
+})
+
 -- avante.nvim
 -- views can only be fully collapsed with the global statusline
 vim.opt.laststatus = 3
