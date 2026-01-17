@@ -168,8 +168,6 @@ return {
 
   { "sindrets/diffview.nvim" },
 
-  { "github/copilot.vim" },
-
   {
     "b0o/schemastore.nvim",
     lazy = true

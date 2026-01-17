@@ -1,3 +1,6 @@
+-- Add Mason bin to PATH so LSP servers are found
+vim.env.PATH = vim.fn.stdpath("data") .. "/mason/bin:" .. vim.env.PATH
+
 require("mason").setup()
 require("mason-lspconfig").setup({
   ensure_installed = {
@@ -9,6 +12,7 @@ require("mason-lspconfig").setup({
     "pyright",
     "terraformls",
     "tflint",
+    "gopls",
 
     -- React stack
     "vtsls",
@@ -164,6 +168,23 @@ M.defaults = function()
   vim.lsp.config.terraformls = {
     filetypes = { "terraform", "terraform-vars", "hcl" },
   }
+  
+  -- Go
+  vim.lsp.config.gopls = {
+    filetypes = { "go", "gomod", "gowork", "gotmpl" },
+  }
+
+  -- CSS
+  vim.lsp.config.cssls = {}
+
+  -- HTML
+  vim.lsp.config.html = {}
+
+  -- Tailwind CSS
+  vim.lsp.config.tailwindcss = {}
+
+  -- TFLint (Terraform linter)
+  vim.lsp.config.tflint = {}
 
   -- Enable all configured LSP servers
   local servers = {
@@ -178,6 +199,7 @@ M.defaults = function()
     'html',
     'jsonls',
     'eslint',
+    "gopls",
   }
 
   for _, server in ipairs(servers) do
