@@ -1,6 +1,3 @@
--- Add Mason bin to PATH so LSP servers are found
-vim.env.PATH = vim.fn.stdpath("data") .. "/mason/bin:" .. vim.env.PATH
-
 require("mason").setup()
 require("mason-lspconfig").setup({
   ensure_installed = {
@@ -172,6 +169,15 @@ M.defaults = function()
   -- Go
   vim.lsp.config.gopls = {
     filetypes = { "go", "gomod", "gowork", "gotmpl" },
+    settings = {
+      gopls = {
+        analyses = {
+          unusedparams = true,
+        },
+        staticcheck = true,
+        gofumpt = true,
+      },
+    },
   }
 
   -- CSS

@@ -129,8 +129,7 @@ return {
 
   {
     "neovim/nvim-lspconfig",
-    event = "VeryLazy", -- testing this
-    -- event = { "BufReadPre", "BufNewFile" },
+    event = { "BufReadPre", "BufNewFile" },
     config = function()
       require "plugins.configs.lspconfig".defaults()
     end,
