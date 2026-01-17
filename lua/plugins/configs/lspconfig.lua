@@ -165,7 +165,7 @@ M.defaults = function()
   vim.lsp.config.terraformls = {
     filetypes = { "terraform", "terraform-vars", "hcl" },
   }
-  
+
   -- Go
   vim.lsp.config.gopls = {
     filetypes = { "go", "gomod", "gowork", "gotmpl" },
