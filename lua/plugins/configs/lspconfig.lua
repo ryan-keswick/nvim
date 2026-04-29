@@ -168,7 +168,7 @@ M.defaults = function()
 
   -- Go
   vim.lsp.config.gopls = {
-    filetypes = { "go", "gomod", "gowork", "gotmpl" },
+    filetypes = { "go", "gomod", "gosum", "gowork", "gotmpl" },
     settings = {
       gopls = {
         analyses = {
