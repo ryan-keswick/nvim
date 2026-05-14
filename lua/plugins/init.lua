@@ -93,6 +93,7 @@ return {
       -- snippets engine
       {
         "L3MON4D3/LuaSnip",
+        freeze = true,
         config = function()
           require("luasnip.loaders.from_vscode").lazy_load()
         end,
@@ -129,8 +130,7 @@ return {
 
   {
     "neovim/nvim-lspconfig",
-    event = "VeryLazy", -- testing this
-    -- event = { "BufReadPre", "BufNewFile" },
+    event = { "BufReadPre", "BufNewFile" },
     config = function()
       require "plugins.configs.lspconfig".defaults()
     end,
@@ -164,11 +164,20 @@ return {
     "nvim-telescope/telescope.nvim",
     cmd = "Telescope",
     opts = require "plugins.configs.telescope",
+    dependencies = { "nvim-telescope/telescope-fzf-native.nvim" },
+    config = function(_, opts)
+      local telescope = require "telescope"
+      telescope.setup(opts)
+      telescope.load_extension "fzf"
+    end,
+  },
+
+  {
+    "nvim-telescope/telescope-fzf-native.nvim",
+    build = "make",
   },
 
   { "sindrets/diffview.nvim" },
-
-  { "github/copilot.vim" },
 
   {
     "b0o/schemastore.nvim",

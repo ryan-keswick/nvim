@@ -30,5 +30,8 @@ end, { desc = "buffer close" })
 map("n", "<leader>/", "gcc", { desc = "toggle comment", remap = true })
 map("v", "<leader>/", "gc", { desc = "toggle comment", remap = true })
 
+-- diagnostics
+map("n", "<leader>d", vim.diagnostic.open_float, { desc = "Show diagnostic" })
+
 -- Use Esc to turn off search highlighting
 map("n", "<Esc>", "<cmd> :noh <CR>")

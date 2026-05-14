@@ -6,8 +6,9 @@ require("mason-lspconfig").setup({
     "html",
     "jsonls",
     "lua_ls",
-    "pyright",
+    "basedpyright",
     "terraformls",
+    "bashls",
     "tflint",
 
     -- React stack
@@ -87,22 +88,21 @@ M.defaults = function()
     },
   }
 
-  -- Python (Poetry env)
-  local poetry_env_ok, poetry_env_path = pcall(function()
-    local p = vim.fn.systemlist("poetry env info -p")[1]
-    return (p and #p > 0) and (p .. "/bin/python") or nil
-  end)
+  -- Python (Canva venv at ~/work/canva/.venv, fallback to system python3)
+  local canva_venv = vim.fn.expand("~/work/canva/.venv/bin/python")
+  local python_path = vim.fn.filereadable(canva_venv) == 1 and canva_venv or vim.fn.exepath("python3")
 
-  vim.lsp.config.pyright = {
+  vim.lsp.config.basedpyright = {
     settings = {
-      python = {
-        pythonPath = poetry_env_ok and poetry_env_path or vim.fn.exepath("python3"),
+      basedpyright = {
+        pythonPath = python_path,
         analysis = {
-          typeCheckingMode = "strict",
+          typeCheckingMode = "basic",
           autoSearchPaths = true,
           useLibraryCodeForTypes = true,
           diagnosticMode = "openFilesOnly",
           logLevel = "Information",
+          extraPaths = { vim.fn.expand("~/work/canva") },
         },
       },
     },
@@ -169,8 +169,9 @@ M.defaults = function()
   local servers = {
     'lua_ls',
     'terraformls',
+    'bashls',
     'tflint',
-    'pyright',
+    'basedpyright',
     'vtsls',
     'tailwindcss',
     'emmet_ls',
