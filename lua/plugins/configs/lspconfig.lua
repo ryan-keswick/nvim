@@ -10,6 +10,7 @@ require("mason-lspconfig").setup({
     "terraformls",
     "bashls",
     "tflint",
+    "gopls",
 
     -- React stack
     "vtsls",
@@ -165,6 +166,32 @@ M.defaults = function()
     filetypes = { "terraform", "terraform-vars", "hcl" },
   }
 
+  -- Go
+  vim.lsp.config.gopls = {
+    filetypes = { "go", "gomod", "gosum", "gowork", "gotmpl" },
+    settings = {
+      gopls = {
+        analyses = {
+          unusedparams = true,
+        },
+        staticcheck = true,
+        gofumpt = true,
+      },
+    },
+  }
+
+  -- CSS
+  vim.lsp.config.cssls = {}
+
+  -- HTML
+  vim.lsp.config.html = {}
+
+  -- Tailwind CSS
+  vim.lsp.config.tailwindcss = {}
+
+  -- TFLint (Terraform linter)
+  vim.lsp.config.tflint = {}
+
   -- Enable all configured LSP servers
   local servers = {
     'lua_ls',
@@ -179,6 +206,7 @@ M.defaults = function()
     'html',
     'jsonls',
     'eslint',
+    "gopls",
   }
 
   for _, server in ipairs(servers) do

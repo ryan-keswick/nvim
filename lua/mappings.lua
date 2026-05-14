@@ -35,3 +35,8 @@ map("n", "<leader>d", vim.diagnostic.open_float, { desc = "Show diagnostic" })
 
 -- Use Esc to turn off search highlighting
 map("n", "<Esc>", "<cmd> :noh <CR>")
+
+-- Diagnostics
+map("n", "<leader>d", vim.diagnostic.open_float, { desc = "Show diagnostics" })
+map("n", "]d", vim.diagnostic.goto_next, { desc = "Next diagnostic" })
+map("n", "[d", vim.diagnostic.goto_prev, { desc = "Prev diagnostic" })

@@ -11,7 +11,6 @@ g.mapleader = " "
 -- Share the clipboard with the system
 o.clipboard = "unnamedplus"
 o.cursorline = true
-o.cursorlineopt = "number"
 
 -- Indenting
 o.expandtab = true   -- Use spaces instead of tabs

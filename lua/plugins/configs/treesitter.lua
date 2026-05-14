@@ -6,6 +6,7 @@ require("nvim-treesitter.configs").setup {
     "csv",
     "dockerfile",
     "gitignore",
+    "go",
     "html",
     "javascript",
     "json",
