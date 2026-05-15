@@ -1,4 +1,6 @@
 return {
+  rocks = { enabled = false },
+
   -- Enable or disable lazy-loading for plugins.
   -- Set to `true` to lazy-load plugins (recommended for performance).
   -- Set to `false` to load all plugins at startup.
