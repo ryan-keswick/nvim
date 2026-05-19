@@ -2,19 +2,39 @@ local threads = vim.trim(vim.fn.system("nproc"))
 
 local spinner_frames = { "⣾", "⣽", "⣻", "⢿", "⡿", "⣟", "⣯", "⣷" }
 local spinner_idx = 0
+local spinner_timer = nil
+
+local function stop_spinner()
+  if spinner_timer then
+    spinner_timer:stop()
+    spinner_timer:close()
+    spinner_timer = nil
+  end
+end
+
+local function start_spinner(status_updater)
+  stop_spinner()
+  spinner_timer = vim.loop.new_timer()
+  spinner_timer:start(0, 80, vim.schedule_wrap(function()
+    spinner_idx = (spinner_idx + 1) % #spinner_frames
+    status_updater { completed = false }
+  end))
+end
 
 local function get_status_text(self, opts)
+  local completed = opts and opts.completed
+  if not completed and not spinner_timer then
+    local updater = self:get_status_updater(self.prompt_win, self.prompt_bufnr)
+    start_spinner(updater)
+  elseif completed then
+    stop_spinner()
+  end
+
   local multi_select_cnt = #(self:get_multi_selection())
   local showing_cnt = (self.stats.processed or 0) - (self.stats.filtered or 0)
   local total_cnt = self.stats.processed or 0
 
-  local status_icon
-  if opts and not opts.completed then
-    spinner_idx = (spinner_idx + 1) % #spinner_frames
-    status_icon = spinner_frames[spinner_idx + 1]
-  else
-    status_icon = ""
-  end
+  local status_icon = completed and "" or spinner_frames[spinner_idx + 1]
 
   local status_text
   if showing_cnt == 0 and total_cnt == 0 then
