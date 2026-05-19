@@ -1,3 +1,5 @@
+local threads = vim.trim(vim.fn.system("nproc"))
+
 return {
   defaults = {
     prompt_prefix = "   ",
@@ -20,6 +22,7 @@ return {
       "--line-number",
       "--column",
       "--smart-case",
+      "--threads=" .. threads,
       "--no-follow",
       "--glob=!bazel-*",
       "--glob=!node_modules",
