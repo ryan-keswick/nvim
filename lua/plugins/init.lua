@@ -154,21 +154,29 @@ return {
     opts = {},
   },
 
-  {
-    "nvim-telescope/telescope.nvim",
-    cmd = "Telescope",
-    opts = require "plugins.configs.telescope",
-    dependencies = { "nvim-telescope/telescope-fzf-native.nvim" },
-    config = function(_, opts)
-      local telescope = require "telescope"
-      telescope.setup(opts)
-      telescope.load_extension "fzf"
-    end,
-  },
 
   {
-    "nvim-telescope/telescope-fzf-native.nvim",
-    build = "make",
+    "ibhagwan/fzf-lua",
+    dependencies = { "nvim-tree/nvim-web-devicons" },
+    config = function()
+      local threads = vim.trim(vim.fn.system("nproc"))
+      require("fzf-lua").setup({
+        "default-title",
+        fzf_bin = "fzf",
+        files = {
+          cmd = "fd --type f --no-follow --threads " .. threads .. " --exclude bazel-* --exclude node_modules",
+        },
+        grep = {
+          cmd = "rg --color=never --no-heading --with-filename --line-number --column --smart-case --threads=" .. threads .. " --no-follow --glob=!bazel-* --glob=!node_modules",
+        },
+        winopts = {
+          height = 0.85,
+          width = 0.80,
+          border = "none",
+          preview = { layout = "horizontal", horizontal = "right:50%", border = "none" },
+        },
+      })
+    end,
   },
 
   { "sindrets/diffview.nvim" },

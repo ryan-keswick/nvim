@@ -4,12 +4,12 @@ local map = vim.keymap.set
 map("n", "<C-n>", "<cmd>NvimTreeToggle<CR>", { desc = "nvimtree toggle window" })
 map("n", "<leader>e", "<cmd>NvimTreeFocus<CR>", { desc = "nvimtree focus window" })
 
--- telescope
-map("n", "<leader>ff", "<cmd> Telescope find_files <CR>")
-map("n", "<leader>fo", "<cmd> Telescope oldfiles <CR>")
-map("n", "<leader>fw", "<cmd> Telescope live_grep <CR>")
-map("n", "<leader>gt", "<cmd> Telescope git_status <CR>")
-map("n", "<leader>cm", "<cmd>Telescope git_commits<CR>", { desc = "telescope git commits" })
+-- fzf-lua
+map("n", "<leader>ff", "<cmd>FzfLua files<CR>", { desc = "find files" })
+map("n", "<leader>fo", "<cmd>FzfLua oldfiles<CR>", { desc = "old files" })
+map("n", "<leader>fw", "<cmd>FzfLua live_grep<CR>", { desc = "live grep" })
+map("n", "<leader>gt", "<cmd>FzfLua git_status<CR>", { desc = "git status" })
+map("n", "<leader>cm", "<cmd>FzfLua git_commits<CR>", { desc = "git commits" })
 
 -- tabufline
 map("n", "<leader>b", "<cmd>enew<CR>", { desc = "buffer new" })
