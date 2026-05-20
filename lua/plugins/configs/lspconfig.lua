@@ -11,6 +11,7 @@ require("mason-lspconfig").setup({
     "bashls",
     "tflint",
     "gopls",
+    "jsonnet_ls",
 
     -- React stack
     "vtsls",
@@ -40,12 +41,7 @@ M.on_attach = function(_, bufnr)
   map("n", "gr", vim.lsp.buf.references, opts "Show references")
 end
 
--- disable semanticTokens
-M.on_init = function(client, _)
-  if client:supports_method "textDocument/semanticTokens" then
-    client.server_capabilities.semanticTokensProvider = nil
-  end
-end
+M.on_init = function(_, _) end
 
 -- capabilities
 M.capabilities = vim.lsp.protocol.make_client_capabilities()
@@ -210,6 +206,9 @@ M.defaults = function()
     end,
   }
 
+  -- Jsonnet
+  vim.lsp.config.jsonnet_ls = {}
+
   -- TFLint (Terraform linter)
   vim.lsp.config.tflint = {}
 
@@ -228,6 +227,7 @@ M.defaults = function()
     'jsonls',
     'eslint',
     "gopls",
+    "jsonnet_ls",
   }
 
   for _, server in ipairs(servers) do

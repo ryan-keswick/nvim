@@ -121,6 +121,7 @@ return {
   {
     "neovim/nvim-lspconfig",
     event = { "BufReadPre", "BufNewFile" },
+    cmd = { "Mason", "MasonInstall", "MasonUpdate" },
     dependencies = {
       "williamboman/mason.nvim",
       "williamboman/mason-lspconfig.nvim",
@@ -157,6 +158,7 @@ return {
 
   {
     "ibhagwan/fzf-lua",
+    cmd = "FzfLua",
     dependencies = { "nvim-tree/nvim-web-devicons" },
     config = function()
       local threads = vim.trim(vim.fn.system("nproc"))
