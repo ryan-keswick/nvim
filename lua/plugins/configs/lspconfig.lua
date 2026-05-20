@@ -187,7 +187,28 @@ M.defaults = function()
   vim.lsp.config.html = {}
 
   -- Tailwind CSS
-  vim.lsp.config.tailwindcss = {}
+  vim.lsp.config.tailwindcss = {
+    filetypes = {
+      'html', 'css', 'scss', 'less', 'postcss',
+      'javascript', 'javascriptreact',
+      'typescript', 'typescriptreact',
+      'vue', 'svelte', 'templ',
+    },
+    root_dir = function(bufnr, on_dir)
+      local fname = vim.api.nvim_buf_get_name(bufnr)
+      local root = vim.fs.find({
+        'tailwind.config.js',
+        'tailwind.config.cjs',
+        'tailwind.config.mjs',
+        'tailwind.config.ts',
+        'postcss.config.js',
+        'postcss.config.cjs',
+        'postcss.config.mjs',
+        'postcss.config.ts',
+      }, { path = fname, upward = true })[1]
+      on_dir(root and vim.fs.dirname(root) or nil)
+    end,
+  }
 
   -- TFLint (Terraform linter)
   vim.lsp.config.tflint = {}
