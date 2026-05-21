@@ -12,6 +12,8 @@ require("nvim-treesitter.configs").setup {
     "json",
     "jsonnet",
     "lua",
+    "markdown",
+    "markdown_inline",
     "python",
     "terraform",
     "tsx",

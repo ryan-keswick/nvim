@@ -21,6 +21,19 @@ require("mason-lspconfig").setup({
   },
 })
 
+local function find_bazel_workspace()
+  local work = vim.fn.expand("~/work")
+  for _, name in ipairs(vim.fn.readdir(work) or {}) do
+    local dir = work .. "/" .. name
+    if vim.fn.filereadable(dir .. "/tools/dprint/dprint") == 1 then
+      return dir
+    end
+  end
+  return nil
+end
+
+local workspace = find_bazel_workspace()
+
 local M = {}
 local map = vim.keymap.set
 
@@ -59,9 +72,14 @@ M.capabilities.textDocument.completion.completionItem = {
 
 -- defaults
 M.defaults = function()
+  vim.api.nvim_create_autocmd("LspAttach", {
+    callback = function(args)
+      M.on_attach(nil, args.buf)
+    end,
+  })
+
   -- Set default config for all LSP servers
   vim.lsp.config['*'] = {
-    on_attach = M.on_attach,
     on_init = M.on_init,
     capabilities = M.capabilities,
   }
@@ -85,9 +103,8 @@ M.defaults = function()
     },
   }
 
-  -- Python (Canva venv at ~/work/canva/.venv, fallback to system python3)
-  local canva_venv = vim.fn.expand("~/work/canva/.venv/bin/python")
-  local python_path = vim.fn.filereadable(canva_venv) == 1 and canva_venv or vim.fn.exepath("python3")
+  local venv_python = workspace and (workspace .. "/.venv/bin/python") or ""
+  local python_path = vim.fn.filereadable(venv_python) == 1 and venv_python or vim.fn.exepath("python3")
 
   vim.lsp.config.basedpyright = {
     settings = {
@@ -99,7 +116,12 @@ M.defaults = function()
           useLibraryCodeForTypes = true,
           diagnosticMode = "openFilesOnly",
           logLevel = "Information",
-          extraPaths = { vim.fn.expand("~/work/canva") },
+          extraPaths = workspace and { workspace } or {},
+          fileEnumerationTimeout = 300,
+          inlayHints = {
+            variableTypes = false,
+            callArgumentNames = false,
+          },
         },
       },
     },
@@ -162,9 +184,10 @@ M.defaults = function()
     filetypes = { "terraform", "terraform-vars", "hcl" },
   }
 
-  -- Go
+  -- Go (disable gopackagesdriver — bazel workspace causes issues with default driver)
   vim.lsp.config.gopls = {
     filetypes = { "go", "gomod", "gosum", "gowork", "gotmpl" },
+    cmd_env = { GOPACKAGESDRIVER = "" },
     settings = {
       gopls = {
         analyses = {
@@ -172,6 +195,16 @@ M.defaults = function()
         },
         staticcheck = true,
         gofumpt = true,
+      },
+    },
+  }
+
+  -- Bash (prefer workspace-pinned shellcheck if present)
+  local workspace_shellcheck = workspace and (workspace .. "/tools/dotslash/bin/shellcheck") or ""
+  vim.lsp.config.bashls = {
+    settings = {
+      bashIde = {
+        shellcheckPath = vim.fn.filereadable(workspace_shellcheck) == 1 and workspace_shellcheck or "shellcheck",
       },
     },
   }
