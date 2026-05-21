@@ -12,6 +12,7 @@ require("mason-lspconfig").setup({
     "tflint",
     "gopls",
     "jsonnet_ls",
+    "starpls",
 
     -- React stack
     "vtsls",
@@ -242,6 +243,9 @@ M.defaults = function()
   -- Jsonnet
   vim.lsp.config.jsonnet_ls = {}
 
+  -- Starlark / Bazel (BUILD, .bzl, WORKSPACE)
+  vim.lsp.config.starpls = {}
+
   -- TFLint (Terraform linter)
   vim.lsp.config.tflint = {}
 
@@ -261,6 +265,7 @@ M.defaults = function()
     'eslint',
     "gopls",
     "jsonnet_ls",
+    "starpls",
   }
 
   for _, server in ipairs(servers) do
