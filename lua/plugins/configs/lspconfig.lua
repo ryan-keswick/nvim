@@ -35,6 +35,16 @@ end
 
 local workspace = find_bazel_workspace()
 
+-- In Terraform a module is a single directory. The default root_markers
+-- ('.terraform', '.git') resolve to the monorepo root, which makes terraform-ls
+-- and tflint try to index every .tf file in ~/work/infrastructure (15k+ files)
+-- and freezes the editor on open. Pin the root to the file's own directory so
+-- each server only indexes the one module being edited.
+local function tf_module_root(bufnr, on_dir)
+  local fname = vim.api.nvim_buf_get_name(bufnr)
+  on_dir(vim.fs.dirname(fname))
+end
+
 local M = {}
 local map = vim.keymap.set
 
@@ -183,6 +193,7 @@ M.defaults = function()
   -- Terraform (include Terragrunt .hcl files)
   vim.lsp.config.terraformls = {
     filetypes = { "terraform", "terraform-vars", "hcl" },
+    root_dir = tf_module_root,
   }
 
   -- Go (disable gopackagesdriver — bazel workspace causes issues with default driver)
@@ -244,10 +255,21 @@ M.defaults = function()
   vim.lsp.config.jsonnet_ls = {}
 
   -- Starlark / Bazel (BUILD, .bzl, WORKSPACE)
-  vim.lsp.config.starpls = {}
+  -- starpls shells out to `bazel info`, which requires CWD to be inside a
+  -- Bazel workspace. Launch starpls with cmd_cwd = root_dir so `bazel info`
+  -- works regardless of where nvim was started from.
+  vim.lsp.config.starpls = {
+    cmd = function(dispatchers, config)
+      return vim.lsp.rpc.start({ 'starpls', 'server' }, dispatchers, {
+        cwd = config.root_dir or vim.fn.getcwd(),
+      })
+    end,
+  }
 
   -- TFLint (Terraform linter)
-  vim.lsp.config.tflint = {}
+  vim.lsp.config.tflint = {
+    root_dir = tf_module_root,
+  }
 
   -- Enable all configured LSP servers
   local servers = {
