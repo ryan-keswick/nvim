@@ -86,6 +86,14 @@ M.defaults = function()
   vim.api.nvim_create_autocmd("LspAttach", {
     callback = function(args)
       M.on_attach(nil, args.buf)
+      -- terraform-ls' semanticTokens/full is very expensive in the
+      -- infrastructure monorepo: every edit/scroll fires a request, and while
+      -- the server is busy preloading provider schemas the requests queue up
+      -- and stall the UI. Drop the capability — treesitter still highlights.
+      local client = vim.lsp.get_client_by_id(args.data.client_id)
+      if client and client.name == "terraformls" then
+        client.server_capabilities.semanticTokensProvider = nil
+      end
     end,
   })
 
@@ -252,7 +260,19 @@ M.defaults = function()
   }
 
   -- Jsonnet
-  vim.lsp.config.jsonnet_ls = {}
+  -- The grafana jsonnet-language-server only serves go-to-definition and
+  -- completion when the file currently evaluates without error. In the k8s
+  -- monorepo, imports like "manifests/src/..." and "third_party/..." are
+  -- resolved relative to the repo root (matching the go-jsonnet renderer's
+  -- FileImporter{JPaths:[root]}). Pin the repo root onto the search path with
+  -- -J so those imports resolve and whole-file eval succeeds; otherwise a
+  -- single unresolved import silently kills all language features.
+  vim.lsp.config.jsonnet_ls = {
+    cmd = function(dispatchers, config)
+      local root = config.root_dir or vim.fn.getcwd()
+      return vim.lsp.rpc.start({ 'jsonnet-language-server', '-J', root }, dispatchers)
+    end,
+  }
 
   -- Starlark / Bazel (BUILD, .bzl, WORKSPACE)
   -- starpls shells out to `bazel info`, which requires CWD to be inside a

@@ -68,6 +68,33 @@ vim.filetype.add({
   },
 })
 
+-- Mustache templates with a double extension (foo.tf.mustache, foo.py.mustache)
+-- get the underlying file's filetype so its LSP, treesitter, and tooling attach.
+-- Bare .mustache (no inner extension) is left as the default mustache filetype.
+-- The {{ }} tags will show as syntax errors in the underlying LSP — accepted
+-- trade-off for completion/navigation on the template body.
+vim.filetype.add({
+  pattern = {
+    [".*%.mustache"] = function(path)
+      local inner = path:gsub("%.mustache$", ""):match("%.([%w]+)$")
+      local map = {
+        tf = "terraform",
+        tfvars = "terraform-vars",
+        py = "python",
+        java = "java",
+        yaml = "yaml",
+        yml = "yaml",
+        json = "json",
+        sql = "sql",
+        ddl = "sql",
+        bazel = "bzl",
+        bzl = "bzl",
+      }
+      return inner and map[inner] or nil
+    end,
+  },
+})
+
 -- avante.nvim
 -- views can only be fully collapsed with the global statusline
 vim.opt.laststatus = 3
