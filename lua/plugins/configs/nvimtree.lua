@@ -8,12 +8,14 @@ return {
     update_root = false,
   },
   view = {
-    width = 30,
+    side = "left",
+    width = { min = 30, max = 60, padding = 1 },
     preserve_window_proportions = true,
   },
   renderer = {
     root_folder_label = false,
     highlight_git = true,
+    indent_width = 1,
     indent_markers = { enable = true },
     icons = {
       glyphs = {
