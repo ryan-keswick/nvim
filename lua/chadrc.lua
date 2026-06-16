@@ -115,9 +115,9 @@ local options = {
     },
 
     buttons = {
-      { txt = "  Find File", keys = "ff", cmd = "FzfLua files" },
+      { txt = "  Find File", keys = "ff", cmd = "lua require('fff').find_files()" },
       { txt = "  Recent Files", keys = "fo", cmd = "FzfLua oldfiles" },
-      { txt = "󰈭  Find Word", keys = "fw", cmd = "FzfLua live_grep" },
+      { txt = "󰈭  Find Word", keys = "fw", cmd = "lua require('fff').live_grep()" },
       { txt = "󱥚  Themes", keys = "th", cmd = ":lua require('nvchad.themes').open()" },
       { txt = "  Mappings", keys = "ch", cmd = "NvCheatsheet" },
 

@@ -4,10 +4,14 @@ local map = vim.keymap.set
 map("n", "<C-n>", "<cmd>NvimTreeToggle<CR>", { desc = "nvimtree toggle window" })
 map("n", "<leader>e", "<cmd>NvimTreeFocus<CR>", { desc = "nvimtree focus window" })
 
--- fzf-lua
-map("n", "<leader>ff", "<cmd>FzfLua files<CR>", { desc = "find files" })
+-- fff.nvim (file find + grep)
+map("n", "<leader>ff", function() require("fff").find_files() end, { desc = "find files" })
+map("n", "<leader>fw", function() require("fff").live_grep() end, { desc = "live grep" })
+map("n", "<leader>fz", function() require("fff").live_grep({ grep = { modes = { "fuzzy", "plain" } } }) end, { desc = "fuzzy grep" })
+map("n", "<leader>fc", function() require("fff").live_grep({ query = vim.fn.expand("<cword>") }) end, { desc = "grep current word" })
+
+-- fzf-lua (git + oldfiles)
 map("n", "<leader>fo", "<cmd>FzfLua oldfiles<CR>", { desc = "old files" })
-map("n", "<leader>fw", "<cmd>FzfLua live_grep<CR>", { desc = "live grep" })
 map("n", "<leader>gt", "<cmd>FzfLua git_status<CR>", { desc = "git status" })
 map("n", "<leader>cm", "<cmd>FzfLua git_commits<CR>", { desc = "git commits" })
 
