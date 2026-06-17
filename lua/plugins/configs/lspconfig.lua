@@ -126,6 +126,10 @@ M.defaults = function()
   local python_path = vim.fn.filereadable(venv_python) == 1 and venv_python or vim.fn.exepath("python3")
 
   vim.lsp.config.basedpyright = {
+    -- node defaults to a ~4GB old-space heap; indexing the canva monorepo blows
+    -- past it and the langserver dies with "JavaScript heap out of memory"
+    -- (exit 250). Raise the limit - the box has plenty of RAM.
+    cmd_env = { NODE_OPTIONS = "--max-old-space-size=12288" },
     settings = {
       basedpyright = {
         pythonPath = python_path,
