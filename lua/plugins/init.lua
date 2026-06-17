@@ -187,6 +187,10 @@ return {
     build = function()
       require("fff.download").download_or_build_binary()
     end,
+    -- treesitter must load first: this nvim ships no bundled parsers, so fff's
+    -- preview (which sets filetype -> ftplugin -> vim.treesitter.start) errors
+    -- if nvim-treesitter (and its parser/ dir) isn't on the runtimepath yet.
+    dependencies = { "nvim-treesitter/nvim-treesitter" },
     event = "VeryLazy",
     opts = {
       layout = {
