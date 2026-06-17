@@ -53,6 +53,7 @@ return {
 
   {
     "nvim-treesitter/nvim-treesitter",
+    branch = "master", -- pin: config uses the master-branch API; main is the rewrite
     event = { "BufReadPost", "BufNewFile" },
     cmd = { "TSInstall", "TSBufEnable", "TSBufDisable", "TSModuleInfo" },
     config = function()
