@@ -172,6 +172,13 @@ return {
         grep = {
           cmd = "rg --color=never --no-heading --with-filename --line-number --column --smart-case --threads=" .. threads .. " --no-follow --glob=!bazel-* --glob=!node_modules",
         },
+        oldfiles = {
+          -- v:oldfiles is only a startup snapshot from shada and is never
+          -- refreshed during a session, so in long-lived (tmux-resurrect)
+          -- sessions recently used files are missing/stale. Prepend the
+          -- current session's buffers sorted by last-used for live MRU order.
+          include_current_session = true,
+        },
         winopts = {
           height = 0.85,
           width = 0.80,
