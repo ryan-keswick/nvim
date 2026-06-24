@@ -5,6 +5,8 @@ require("mason-lspconfig").setup({
     "eslint",
     "html",
     "jsonls",
+    "yamlls",
+    "dockerls",
     "lua_ls",
     "basedpyright",
     "terraformls",
@@ -53,7 +55,7 @@ M.on_attach = function(_, bufnr)
   local function opts(desc) return { buffer = bufnr, desc = "LSP " .. desc } end
 
   map("n", "gD", vim.lsp.buf.declaration, opts "Go to declaration")
-  map("n", "gd", vim.lsp.buf.definition, opts "Go to definition")
+  map("n", "gd", "<cmd>FzfLua lsp_definitions<CR>", opts "Go to definition")
   map("n", "gi", vim.lsp.buf.implementation, opts "Go to implementation")
   map("n", "<leader>sh", vim.lsp.buf.signature_help, opts "Show signature help")
   map("n", "<leader>wa", vim.lsp.buf.add_workspace_folder, opts "Add workspace folder")
@@ -61,25 +63,21 @@ M.on_attach = function(_, bufnr)
   map("n", "<leader>wl", function() print(vim.inspect(vim.lsp.buf.list_workspace_folders())) end,
     opts "List workspace folders")
   map("n", "<leader>D", vim.lsp.buf.type_definition, opts "Go to type definition")
+  map("n", "<leader>rn", vim.lsp.buf.rename, opts "Rename")
   map({ "n", "v" }, "<leader>ca", vim.lsp.buf.code_action, opts "Code action")
-  map("n", "gr", vim.lsp.buf.references, opts "Show references")
+  map("n", "gr", "<cmd>FzfLua lsp_references<CR>", opts "Show references")
+  map("n", "<leader>th", function() vim.lsp.inlay_hint.enable(not vim.lsp.inlay_hint.is_enabled()) end,
+    opts "Toggle inlay hints")
 end
 
 M.on_init = function(_, _) end
 
 -- capabilities
-M.capabilities = vim.lsp.protocol.make_client_capabilities()
-M.capabilities.textDocument.completion.completionItem = {
-  documentationFormat = { "markdown", "plaintext" },
-  snippetSupport = true,
-  preselectSupport = true,
-  insertReplaceSupport = true,
-  labelDetailsSupport = true,
-  deprecatedSupport = true,
-  commitCharactersSupport = true,
-  tagSupport = { valueSet = { 1 } },
-  resolveSupport = { properties = { "documentation", "detail", "additionalTextEdits" } },
-}
+local ok_cmp, cmp_lsp = pcall(require, "cmp_nvim_lsp")
+M.capabilities = vim.tbl_deep_extend("force",
+  vim.lsp.protocol.make_client_capabilities(),
+  ok_cmp and cmp_lsp.default_capabilities() or {})
+M.capabilities.textDocument.completion.completionItem.documentationFormat = { "markdown", "plaintext" }
 
 -- defaults
 M.defaults = function()
@@ -103,18 +101,23 @@ M.defaults = function()
     capabilities = M.capabilities,
   }
 
+  -- Diagnostics (0.12 ships with virtual_text off by default)
+  vim.diagnostic.config({
+    virtual_text = { source = "if_many", spacing = 2 },
+    severity_sort = true,
+    float = { source = true, border = "rounded" },
+  })
+
+  -- Diagnostics list pickers (via fzf-lua)
+  map("n", "<leader>fd", "<cmd>FzfLua diagnostics_document<CR>", { desc = "LSP document diagnostics" })
+  map("n", "<leader>fD", "<cmd>FzfLua diagnostics_workspace<CR>", { desc = "LSP workspace diagnostics" })
+
   -- Lua
   vim.lsp.config.lua_ls = {
     settings = {
       Lua = {
         diagnostics = { globals = { "vim" } },
         workspace = {
-          library = {
-            vim.fn.expand("$VIMRUNTIME/lua"),
-            vim.fn.expand("$VIMRUNTIME/lua/vim/lsp"),
-            vim.fn.stdpath("data") .. "/lazy/lazy.nvim/lua/lazy",
-            "${3rd}/luv/library",
-          },
           maxPreload = 100000,
           preloadFileSize = 10000,
         },
@@ -152,7 +155,6 @@ M.defaults = function()
 
   -- React / TS core (VTSLS only)
   vim.lsp.config.vtsls = {
-    on_init = nil, -- Override to disable on_init for vtsls
     settings = {
       vtsls = { enableMoveToFileCodeAction = true, tsserver = { globalPlugins = {} } },
       typescript = {
@@ -188,16 +190,30 @@ M.defaults = function()
         format = { enable = true },
         schemas = ok_schemastore and schemastore.json.schemas() or {},
         schemaDownload = { enable = true },
-        trace = { server = "verbose" },
       },
     },
   }
 
+  -- YAML
+  vim.lsp.config.yamlls = {
+    settings = {
+      yaml = {
+        schemaStore = { enable = false, url = "" },
+        schemas = vim.tbl_extend("force", ok_schemastore and schemastore.yaml.schemas() or {},
+          { kubernetes = { "manifests/**/*.yaml", "*.k8s.yaml" } }),
+        validate = true,
+        keyOrdering = false,
+      },
+    },
+  }
+
+  -- Docker
+  vim.lsp.config.dockerls = {}
+
   -- ESLint
   vim.lsp.config.eslint = {
-    on_attach = function(client, bufnr)
-      M.on_attach(client, bufnr)
-      -- Uncomment to auto-fix on save:
+    on_attach = function(_, bufnr)
+      -- Auto-fix on save:
       vim.api.nvim_create_autocmd("BufWritePre", { buffer = bufnr, command = "EslintFixAll" })
     end,
   }
@@ -308,6 +324,8 @@ M.defaults = function()
     'cssls',
     'html',
     'jsonls',
+    'yamlls',
+    'dockerls',
     'eslint',
     "gopls",
     "jsonnet_ls",

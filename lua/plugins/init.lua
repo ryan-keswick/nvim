@@ -54,23 +54,11 @@ return {
   {
     "nvim-treesitter/nvim-treesitter",
     branch = "master", -- pin: config uses the master-branch API; main is the rewrite
+    build = ":TSUpdate", -- keep parsers in sync when nvim auto-upgrades
     event = { "BufReadPost", "BufNewFile" },
     cmd = { "TSInstall", "TSBufEnable", "TSBufDisable", "TSModuleInfo" },
     config = function()
       require "plugins.configs.treesitter"
-    end,
-  },
-
-  {
-    "akinsho/bufferline.nvim",
-    event = "BufReadPre",
-    opts = require "plugins.configs.bufferline"
-  },
-
-  {
-    "echasnovski/mini.statusline",
-    config = function()
-      require("mini.statusline").setup { set_vim_settings = false }
     end,
   },
 
@@ -98,24 +86,17 @@ return {
         config = function()
           require("luasnip.loaders.from_vscode").lazy_load()
         end,
-      }
-
-      -- autopairs , autocompletes ()[] etc
-      -- {
-      --  "windwp/nvim-autopairs",
-      --  config = function()
-      --    require("nvim-autopairs").setup()
-
-      --    local cmp_autopairs = require "nvim-autopairs.completion.cmp"
-      --    local cmp = require "cmp"
-      --    cmp.event:on("confirm_done", cmp_autopairs.on_confirm_done())
-      --  end,
-      -- },
+      },
     },
     config = function()
       local cmp = require "cmp"
       local opts = require "plugins.configs.cmp"
       cmp.setup(opts)
+
+      local ok_ap, ap = pcall(require, "nvim-autopairs.completion.cmp")
+      if ok_ap then
+        cmp.event:on("confirm_done", ap.on_confirm_done())
+      end
     end,
   },
 
@@ -134,9 +115,10 @@ return {
 
   {
     "stevearc/conform.nvim",
-    lazy = true,
     event = { "BufWritePre" },
-    opts = require "plugins.configs.conform",
+    opts = function()
+      return require("plugins.configs.conform")
+    end,
   },
 
   {
@@ -153,7 +135,26 @@ return {
   {
     "lewis6991/gitsigns.nvim",
     event = { "BufReadPre", "BufNewFile" },
-    opts = {},
+    opts = {
+      on_attach = function(bufnr)
+        local gs = require "gitsigns"
+
+        local function map(mode, lhs, rhs, desc)
+          vim.keymap.set(mode, lhs, rhs, { buffer = bufnr, desc = desc })
+        end
+
+        -- Navigation
+        map("n", "]c", function() gs.nav_hunk("next") end, "gitsigns: next hunk")
+        map("n", "[c", function() gs.nav_hunk("prev") end, "gitsigns: prev hunk")
+
+        -- Actions
+        map("n", "<leader>hs", gs.stage_hunk, "gitsigns: stage hunk")
+        map("n", "<leader>hr", gs.reset_hunk, "gitsigns: reset hunk")
+        map("n", "<leader>hp", gs.preview_hunk, "gitsigns: preview hunk")
+        map("n", "<leader>hb", function() gs.blame_line({ full = true }) end, "gitsigns: blame line")
+        map("n", "<leader>tb", gs.toggle_current_line_blame, "gitsigns: toggle line blame")
+      end,
+    },
   },
 
 
@@ -162,7 +163,7 @@ return {
     cmd = "FzfLua",
     dependencies = { "nvim-tree/nvim-web-devicons" },
     config = function()
-      local threads = vim.trim(vim.fn.system("nproc"))
+      local threads = tostring(vim.uv.available_parallelism())
       require("fzf-lua").setup({
         "default-title",
         fzf_bin = "fzf",
@@ -198,7 +199,12 @@ return {
     -- preview (which sets filetype -> ftplugin -> vim.treesitter.start) errors
     -- if nvim-treesitter (and its parser/ dir) isn't on the runtimepath yet.
     dependencies = { "nvim-treesitter/nvim-treesitter" },
-    event = "VeryLazy",
+    keys = {
+      { "<leader>ff", function() require("fff").find_files() end, desc = "find files" },
+      { "<leader>fw", function() require("fff").live_grep() end, desc = "live grep" },
+      { "<leader>fz", function() require("fff").live_grep({ grep = { modes = { "fuzzy", "plain" } } }) end, desc = "fuzzy grep" },
+      { "<leader>fc", function() require("fff").live_grep({ query = vim.fn.expand("<cword>") }) end, desc = "grep current word" },
+    },
     opts = {
       layout = {
         prompt_position = "top",
@@ -206,10 +212,38 @@ return {
     },
   },
 
-  { "sindrets/diffview.nvim" },
+  {
+    "sindrets/diffview.nvim",
+    cmd = { "DiffviewOpen", "DiffviewClose", "DiffviewFileHistory", "DiffviewToggleFiles", "DiffviewFocusFiles" },
+  },
 
   {
     "b0o/schemastore.nvim",
     lazy = true
-  }
+  },
+
+  { "folke/which-key.nvim", event = "VeryLazy", opts = {} },
+
+  { "windwp/nvim-autopairs", event = "InsertEnter", opts = {} },
+
+  { "folke/lazydev.nvim", ft = "lua", opts = {} },
+
+  {
+    "folke/todo-comments.nvim",
+    event = { "BufReadPost", "BufNewFile" },
+    dependencies = { "nvim-lua/plenary.nvim" },
+    opts = {},
+  },
+
+  {
+    "folke/flash.nvim",
+    event = "VeryLazy",
+    opts = {},
+    keys = {
+      { "s", mode = { "n", "x", "o" }, function() require("flash").jump() end, desc = "Flash" },
+      { "S", mode = { "n", "x", "o" }, function() require("flash").treesitter() end, desc = "Flash Treesitter" },
+    },
+  },
+
+  { "echasnovski/mini.surround", event = "VeryLazy", opts = {} },
 }

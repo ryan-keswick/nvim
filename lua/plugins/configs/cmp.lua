@@ -39,11 +39,8 @@ return {
       "s",
     }),
   },
-  sources = cmp.config.sources {
-    { name = "nvim_lsp" },
-    { name = "luasnip" },
-    { name = "buffer" },
-    { name = "nvim_lua" },
-    { name = "path" },
-  },
+  sources = cmp.config.sources(
+    { { name = "nvim_lsp" }, { name = "luasnip" }, { name = "nvim_lua" }, { name = "path" } },
+    { { name = "buffer", option = { keyword_length = 3 } } }
+  ),
 }

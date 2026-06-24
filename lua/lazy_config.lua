@@ -1,10 +1,9 @@
 return {
   rocks = { enabled = false },
 
-  -- Enable or disable lazy-loading for plugins.
-  -- Set to `true` to lazy-load plugins (recommended for performance).
-  -- Set to `false` to load all plugins at startup.
-  lazy = false,
+  -- Lazy-load plugins by default. Individual specs opt in to eager loading
+  -- with `lazy = false` (e.g. the NvChad UI/theme plugins).
+  defaults = { lazy = true },
 
   -- Plugin installation settings.
   install = {
@@ -16,16 +15,21 @@ return {
     -- missing = true,
   },
 
-  -- Optional: Performance optimizations.
-  -- performance = {
-  --   rtp = {
-  --     -- Disable unused rtp plugins for faster startup.
-  --     disabled_plugins = {
-  --       "netrw",
-  --       "netrwPlugin",
-  --     },
-  --   },
-  -- },
+  -- Performance optimizations: disable unused built-in rtp plugins for faster startup.
+  performance = {
+    rtp = {
+      disabled_plugins = {
+        "netrwPlugin",
+        "gzip",
+        "zipPlugin",
+        "tarPlugin",
+        "tohtml",
+        "tutor",
+        "rplugin",
+        "spellfile",
+      },
+    },
+  },
 
   -- Optional: Debugging settings for troubleshooting.
   -- debug = false,

@@ -37,7 +37,7 @@ return {
     typescriptreact = { "dprint" },
     javascript      = { "dprint" },
     javascriptreact = { "dprint" },
-    go              = { "dprint" },
+    go              = { "goimports", "gofumpt" },
     java            = { "dprint" },
     json            = { "dprint" },
     jsonc           = { "dprint" },
@@ -49,6 +49,8 @@ return {
     bzl             = { "buildifier" },
     terraform       = { "terraform_fmt" },
     ["terraform-vars"] = { "terraform_fmt" },
+    hcl             = { "terraform_fmt" },
+    jsonnet         = { "jsonnetfmt" },
   },
   formatters = {
     dprint = {
@@ -60,6 +62,6 @@ return {
   },
   format_on_save = {
     timeout_ms = 10000,
-    lsp_format = "never",
+    lsp_format = "fallback",
   },
 }

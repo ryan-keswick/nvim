@@ -8,7 +8,26 @@ o.showmode = false
 
 g.mapleader = " "
 
--- Share the clipboard with the system
+-- Disable unused language providers (this is a pure-Lua config).
+g.loaded_python3_provider = 0
+g.loaded_ruby_provider = 0
+g.loaded_perl_provider = 0
+g.loaded_node_provider = 0
+
+-- Share the clipboard with the system.
+-- Headless remote box: no clipboard provider, so use an OSC 52 provider that
+-- pipes the + / * registers over the terminal escape sequence to the local machine.
+vim.g.clipboard = {
+  name = "OSC 52",
+  copy = {
+    ["+"] = require("vim.ui.clipboard.osc52").copy("+"),
+    ["*"] = require("vim.ui.clipboard.osc52").copy("*"),
+  },
+  paste = {
+    ["+"] = require("vim.ui.clipboard.osc52").paste("+"),
+    ["*"] = require("vim.ui.clipboard.osc52").paste("*"),
+  },
+}
 o.clipboard = "unnamedplus"
 o.cursorline = true
 
@@ -50,11 +69,32 @@ o.updatetime = 250
 -- bufferline.nvim
 o.termguicolors = true
 
+-- Core option wins
+o.scrolloff = 8                              -- keep 8 lines of context around the cursor
+o.splitkeep = "screen"                       -- keep text on screen stable when splitting
+opt.diffopt:append("linematch:60")           -- finer line matching in diffs
+vim.o.winborder = "rounded"                  -- 0.12 — rounded borders on all floating windows (LSP floats)
+
+-- Treesitter folding (lazy-evaluated, so safe even with no parser for a buffer)
+o.foldmethod = "expr"
+o.foldexpr = "v:lua.vim.treesitter.foldexpr()"
+o.foldlevelstart = 99                        -- folds open by default
+o.foldenable = true
+
 -- Commentstring
 api.nvim_create_autocmd("FileType", {
   pattern = "terraform",
   callback = function()
     opt.commentstring = "# %s"
+  end,
+})
+
+-- Starlark (.star) has no bundled ftplugin, so commentstring is empty and gcc
+-- no-ops. Set it explicitly. (bzl/jsonnet/hcl get theirs from bundled ftplugins.)
+api.nvim_create_autocmd("FileType", {
+  pattern = "starlark",
+  callback = function()
+    vim.bo.commentstring = "# %s"
   end,
 })
 
@@ -94,7 +134,3 @@ vim.filetype.add({
     end,
   },
 })
-
--- avante.nvim
--- views can only be fully collapsed with the global statusline
-vim.opt.laststatus = 3
