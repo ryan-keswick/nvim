@@ -20,6 +20,15 @@ map("n", "<S-h>", function()
   require("nvchad.tabufline").prev()
 end, { desc = "buffer goto prev" })
 
+-- Tab / S-Tab also cycle buffers (preferred over freeing <C-i>/jumplist)
+map("n", "<Tab>", function()
+  require("nvchad.tabufline").next()
+end, { desc = "buffer goto next" })
+
+map("n", "<S-Tab>", function()
+  require("nvchad.tabufline").prev()
+end, { desc = "buffer goto prev" })
+
 map("n", "<leader>x", function()
   require("nvchad.tabufline").close_buffer()
 end, { desc = "buffer close" })
