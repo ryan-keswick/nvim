@@ -53,9 +53,12 @@ return {
     "nvim-tree/nvim-web-devicons",
     lazy = true,
     config = function()
-      require("nvim-web-devicons").set_icon({
-        jsonnet   = { icon = "", color = "#0095d8", cterm_color = "74", name = "Jsonnet" },
-        libsonnet = { icon = "", color = "#7a5cff", cterm_color = "99", name = "Libsonnet" },
+      local devicons = require("nvim-web-devicons")
+      -- Reuse devicons' real json glyph (the audit shipped empty icon strings).
+      local json_glyph = (devicons.get_icons().json or {}).icon or ""
+      devicons.set_icon({
+        jsonnet   = { icon = json_glyph, color = "#0095d8", cterm_color = "74", name = "Jsonnet" },
+        libsonnet = { icon = json_glyph, color = "#7a5cff", cterm_color = "99", name = "Libsonnet" },
       })
     end,
   },
