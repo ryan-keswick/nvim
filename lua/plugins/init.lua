@@ -49,7 +49,16 @@ return {
     opts = require "plugins.configs.nvimtree"
   },
 
-  { "nvim-tree/nvim-web-devicons", lazy = true },
+  {
+    "nvim-tree/nvim-web-devicons",
+    lazy = true,
+    config = function()
+      require("nvim-web-devicons").set_icon({
+        jsonnet   = { icon = "", color = "#0095d8", cterm_color = "74", name = "Jsonnet" },
+        libsonnet = { icon = "", color = "#7a5cff", cterm_color = "99", name = "Libsonnet" },
+      })
+    end,
+  },
 
   {
     "nvim-treesitter/nvim-treesitter",
