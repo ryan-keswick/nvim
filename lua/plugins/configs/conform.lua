@@ -30,6 +30,25 @@ end
 
 local terraform_cmd = find_terraform()
 
+-- Resolve a repo-pinned jsonnetfmt. Some ~/work repos (e.g. k8s) ship a dotslash
+-- shim at tools/dotslash/bin/jsonnetfmt and enforce a house style in CI — k8s
+-- runs `jsonnetfmt --string-style d --comment-style s` (double quotes), gated by
+-- build/verify/verify_fmt.sh. Without this, bare `jsonnetfmt` is unresolved and
+-- format-on-save falls back to the language server, which defaults to single
+-- quotes and fights CI on every save.
+local function find_jsonnetfmt()
+  local work = vim.fn.expand("~/work")
+  for _, name in ipairs(vim.fn.readdir(work) or {}) do
+    local bin = work .. "/" .. name .. "/tools/dotslash/bin/jsonnetfmt"
+    if vim.fn.executable(bin) == 1 then
+      return bin
+    end
+  end
+  return "jsonnetfmt"
+end
+
+local jsonnetfmt_cmd = find_jsonnetfmt()
+
 return {
   formatters_by_ft = {
     python          = { "dprint" },
@@ -58,6 +77,10 @@ return {
     },
     terraform_fmt = {
       command = terraform_cmd,
+    },
+    jsonnetfmt = {
+      command = jsonnetfmt_cmd,
+      prepend_args = { "--string-style", "d", "--comment-style", "s" },
     },
   },
   format_on_save = {
