@@ -24,6 +24,18 @@ require("mason-lspconfig").setup({
   },
 })
 
+-- conform's Go formatters live in Mason, but mason-lspconfig only ever installs
+-- LSP servers, never formatters/linters. Declare them here so a fresh devbox
+-- auto-installs them on first start (buildifier is provided by nix; jsonnet
+-- formatting falls back to the jsonnet language server).
+require("mason-tool-installer").setup({
+  ensure_installed = {
+    "goimports",
+    "gofumpt",
+  },
+  run_on_start = true,
+})
+
 local function find_bazel_workspace()
   local work = vim.fn.expand("~/work")
   for _, name in ipairs(vim.fn.readdir(work) or {}) do
