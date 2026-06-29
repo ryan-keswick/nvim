@@ -219,18 +219,10 @@ return {
       { "<leader>fc", function() require("fff").live_grep({ query = vim.fn.expand("<cword>") }) end, desc = "grep current word" },
     },
     opts = {
-      -- Index every repo under ~/work so <leader>ff / <leader>fw search across all
-      -- of them, regardless of which directory nvim was opened from.
-      base_path = vim.fn.expand("~/work"),
-      -- Never also scan $HOME: the default (true) pulls in ~/.cache/bazel — millions
-      -- of files, many GB — which hung <leader>fw and ballooned nvim to ~5GB RAM.
+      -- keep the bazel cache (~/.cache/bazel, reached via bazel-* symlinks) out of the index
       enable_home_dir_scanning = false,
-      -- Don't follow symlinks. canva's bazel-* dirs symlink into ~/.cache/bazel, so
-      -- this keeps the multi-GB bazel cache out of the index (canva's .gitignore
-      -- /bazel-* also excludes them; pinning this guards against a default change).
       follow_symlinks = false,
-      -- Index faster across the ~800k tracked files under ~/work (box has 16 cores).
-      max_threads = 12,
+      max_threads = vim.uv.available_parallelism(),
       layout = {
         prompt_position = "top",
       },
