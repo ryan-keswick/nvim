@@ -1,53 +1,56 @@
+-- Single source of truth for LSP servers: this list feeds both
+-- mason-lspconfig's ensure_installed and vim.lsp.enable() in M.defaults().
+-- mason-lspconfig v2 defaults automatic_enable to true, which would enable
+-- every installed server behind our back; it is turned off below so removing
+-- a name here actually disables the server.
+local servers = {
+  -- core
+  "eslint",
+  "html",
+  "jsonls",
+  "yamlls",
+  "dockerls",
+  "lua_ls",
+  "basedpyright",
+  "ruff",
+  "terraformls",
+  "bashls",
+  "tflint",
+  "gopls",
+  "jsonnet_ls",
+  "starpls",
+  "helm_ls",
+
+  -- React stack
+  "vtsls",
+  "tailwindcss",
+  "emmet_ls",
+  "cssls",
+}
+
 require("mason").setup()
-require("mason-lspconfig").setup({
-  ensure_installed = {
-    -- core
-    "eslint",
-    "html",
-    "jsonls",
-    "yamlls",
-    "dockerls",
-    "lua_ls",
-    "basedpyright",
-    "terraformls",
-    "bashls",
-    "tflint",
-    "gopls",
-    "jsonnet_ls",
-    "starpls",
+require("mason-lspconfig").setup {
+  ensure_installed = servers,
+  automatic_enable = false,
+}
 
-    -- React stack
-    "vtsls",
-    "tailwindcss",
-    "emmet_ls",
-    "cssls",
-  },
-})
-
--- conform's Go formatters live in Mason, but mason-lspconfig only ever installs
--- LSP servers, never formatters/linters. Declare them here so a fresh devbox
--- auto-installs them on first start (buildifier is provided by nix; jsonnet
--- formatting falls back to the jsonnet language server).
-require("mason-tool-installer").setup({
+-- conform's Go formatters and stylua live in Mason, but mason-lspconfig only
+-- ever installs LSP servers, never formatters/linters. Declare them here so a
+-- fresh devbox auto-installs them on first start (buildifier is provided by
+-- nix; dprint/terraform/jsonnetfmt are repo-pinned via lua/workspace.lua).
+require("mason-tool-installer").setup {
   ensure_installed = {
     "goimports",
     "gofumpt",
+    "stylua",
   },
   run_on_start = true,
-})
+}
 
-local function find_bazel_workspace()
-  local work = vim.fn.expand("~/work")
-  for _, name in ipairs(vim.fn.readdir(work) or {}) do
-    local dir = work .. "/" .. name
-    if vim.fn.filereadable(dir .. "/tools/dprint/dprint") == 1 then
-      return dir
-    end
-  end
-  return nil
-end
+local workspace = require "workspace"
 
-local workspace = find_bazel_workspace()
+-- The canva monorepo is the ~/work repo that ships tools/dprint/dprint.
+local canva_workspace = workspace.find_work_repo "tools/dprint/dprint"
 
 -- In Terraform a module is a single directory. The default root_markers
 -- ('.terraform', '.git') resolve to the monorepo root, which makes terraform-ls
@@ -62,9 +65,15 @@ end
 local M = {}
 local map = vim.keymap.set
 
+local function augroup(name)
+  return vim.api.nvim_create_augroup(name, { clear = true })
+end
+
 -- on_attach: keymaps
 M.on_attach = function(_, bufnr)
-  local function opts(desc) return { buffer = bufnr, desc = "LSP " .. desc } end
+  local function opts(desc)
+    return { buffer = bufnr, desc = "LSP " .. desc }
+  end
 
   map("n", "gD", vim.lsp.buf.declaration, opts "Go to declaration")
   map("n", "gd", "<cmd>FzfLua lsp_definitions<CR>", opts "Go to definition")
@@ -72,34 +81,45 @@ M.on_attach = function(_, bufnr)
   map("n", "<leader>sh", vim.lsp.buf.signature_help, opts "Show signature help")
   map("n", "<leader>wa", vim.lsp.buf.add_workspace_folder, opts "Add workspace folder")
   map("n", "<leader>wr", vim.lsp.buf.remove_workspace_folder, opts "Remove workspace folder")
-  map("n", "<leader>wl", function() print(vim.inspect(vim.lsp.buf.list_workspace_folders())) end,
-    opts "List workspace folders")
+  map("n", "<leader>wl", function()
+    print(vim.inspect(vim.lsp.buf.list_workspace_folders()))
+  end, opts "List workspace folders")
   map("n", "<leader>D", vim.lsp.buf.type_definition, opts "Go to type definition")
   map("n", "<leader>rn", vim.lsp.buf.rename, opts "Rename")
   map({ "n", "v" }, "<leader>ca", vim.lsp.buf.code_action, opts "Code action")
   map("n", "gr", "<cmd>FzfLua lsp_references<CR>", opts "Show references")
-  map("n", "<leader>th", function() vim.lsp.inlay_hint.enable(not vim.lsp.inlay_hint.is_enabled()) end,
-    opts "Toggle inlay hints")
+  map("n", "<leader>th", function()
+    vim.lsp.inlay_hint.enable(not vim.lsp.inlay_hint.is_enabled())
+  end, opts "Toggle inlay hints")
 end
 
-M.on_init = function(_, _) end
-
--- capabilities
-local ok_cmp, cmp_lsp = pcall(require, "cmp_nvim_lsp")
-M.capabilities = vim.tbl_deep_extend("force",
-  vim.lsp.protocol.make_client_capabilities(),
-  ok_cmp and cmp_lsp.default_capabilities() or {})
-M.capabilities.textDocument.completion.completionItem.documentationFormat = { "markdown", "plaintext" }
+-- capabilities: blink.cmp, falling back to plain client capabilities when it
+-- is absent (mid-bootstrap fresh install, headless).
+local ok_blink, blink = pcall(require, "blink.cmp")
+M.capabilities = ok_blink and blink.get_lsp_capabilities() or vim.lsp.protocol.make_client_capabilities()
 
 -- defaults
 M.defaults = function()
   vim.api.nvim_create_autocmd("LspAttach", {
+    group = augroup "LspAttachKeymaps",
     callback = function(args)
+      -- LspAttach fires once per attaching client (4x in a .tsx buffer);
+      -- only set the buffer keymaps the first time.
+      if vim.b[args.buf].lsp_keymaps_set then
+        return
+      end
+      vim.b[args.buf].lsp_keymaps_set = true
       M.on_attach(nil, args.buf)
-      -- terraform-ls' semanticTokens/full is very expensive in the
-      -- infrastructure monorepo: every edit/scroll fires a request, and while
-      -- the server is busy preloading provider schemas the requests queue up
-      -- and stall the UI. Drop the capability — treesitter still highlights.
+    end,
+  })
+
+  -- terraform-ls' semanticTokens/full is very expensive in the
+  -- infrastructure monorepo: every edit/scroll fires a request, and while
+  -- the server is busy preloading provider schemas the requests queue up
+  -- and stall the UI. Drop the capability — treesitter still highlights.
+  vim.api.nvim_create_autocmd("LspAttach", {
+    group = augroup "TerraformlsSemanticTokens",
+    callback = function(args)
       local client = vim.lsp.get_client_by_id(args.data.client_id)
       if client and client.name == "terraformls" then
         client.server_capabilities.semanticTokensProvider = nil
@@ -107,18 +127,39 @@ M.defaults = function()
     end,
   })
 
+  -- Per-module roots spawn one terraformls/tflint per module dir, and
+  -- terraformls preloads provider schemas (hundreds of MB) without ever
+  -- exiting on its own — long tmux sessions accumulate idle servers. Stop a
+  -- client 30s after its last buffer detaches. attached_buffers is checked
+  -- inside the deferred fn because LspDetach fires before detach completes.
+  vim.api.nvim_create_autocmd("LspDetach", {
+    group = augroup "TerraformServerReap",
+    callback = function(args)
+      local client = vim.lsp.get_client_by_id(args.data.client_id)
+      if not client or (client.name ~= "terraformls" and client.name ~= "tflint") then
+        return
+      end
+      local id = args.data.client_id
+      vim.defer_fn(function()
+        local c = vim.lsp.get_client_by_id(id)
+        if c and not c:is_stopped() and next(c.attached_buffers) == nil then
+          c:stop()
+        end
+      end, 30000)
+    end,
+  })
+
   -- Set default config for all LSP servers
-  vim.lsp.config['*'] = {
-    on_init = M.on_init,
+  vim.lsp.config["*"] = {
     capabilities = M.capabilities,
   }
 
   -- Diagnostics (0.12 ships with virtual_text off by default)
-  vim.diagnostic.config({
+  vim.diagnostic.config {
     virtual_text = { source = "if_many", spacing = 2 },
     severity_sort = true,
     float = { source = true, border = "rounded" },
-  })
+  }
 
   -- Diagnostics list pickers (via fzf-lua)
   map("n", "<leader>fd", "<cmd>FzfLua diagnostics_document<CR>", { desc = "LSP document diagnostics" })
@@ -137,24 +178,43 @@ M.defaults = function()
     },
   }
 
-  local venv_python = workspace and (workspace .. "/.venv/bin/python") or ""
-  local python_path = vim.fn.filereadable(venv_python) == 1 and venv_python or vim.fn.exepath("python3")
+  -- Last-resort interpreter for roots without a .venv: the canva monorepo
+  -- venv when checked out, else whatever python3 is on PATH.
+  local fallback_venv = canva_workspace and (canva_workspace .. "/.venv/bin/python") or ""
+  local fallback_python = vim.fn.filereadable(fallback_venv) == 1 and fallback_venv or vim.fn.exepath "python3"
 
   vim.lsp.config.basedpyright = {
     -- node defaults to a ~4GB old-space heap; indexing the canva monorepo blows
     -- past it and the langserver dies with "JavaScript heap out of memory"
     -- (exit 250). Raise the limit - the box has plenty of RAM.
     cmd_env = { NODE_OPTIONS = "--max-old-space-size=12288" },
+    -- Resolve interpreter/search paths per root instead of pinning the canva
+    -- venv + monorepo into every python buffer. The server reads the
+    -- interpreter from settings.python.pythonPath, not settings.basedpyright.
+    before_init = function(_, config)
+      config.settings = config.settings or {}
+      config.settings.python = config.settings.python or {}
+      local venv_owner = config.root_dir and vim.fs.root(config.root_dir, ".venv")
+      if venv_owner then
+        config.settings.python.pythonPath = venv_owner .. "/.venv/bin/python"
+      elseif fallback_python ~= "" then
+        config.settings.python.pythonPath = fallback_python
+      end
+      if canva_workspace and config.root_dir == canva_workspace then
+        local bp = config.settings.basedpyright or {}
+        config.settings.basedpyright = bp
+        bp.analysis = bp.analysis or {}
+        bp.analysis.extraPaths = { canva_workspace }
+      end
+    end,
     settings = {
       basedpyright = {
-        pythonPath = python_path,
         analysis = {
           typeCheckingMode = "basic",
           autoSearchPaths = true,
           useLibraryCodeForTypes = true,
           diagnosticMode = "openFilesOnly",
           logLevel = "Information",
-          extraPaths = workspace and { workspace } or {},
           fileEnumerationTimeout = 300,
           inlayHints = {
             variableTypes = false,
@@ -164,6 +224,14 @@ M.defaults = function()
       },
     },
   }
+
+  -- Ruff (lint + code actions to match CI; formatting stays dprint, and
+  -- hover stays with basedpyright)
+  vim.lsp.config("ruff", {
+    on_attach = function(client)
+      client.server_capabilities.hoverProvider = false
+    end,
+  })
 
   -- React / TS core (VTSLS only)
   vim.lsp.config.vtsls = {
@@ -211,24 +279,34 @@ M.defaults = function()
     settings = {
       yaml = {
         schemaStore = { enable = false, url = "" },
-        schemas = vim.tbl_extend("force", ok_schemastore and schemastore.yaml.schemas() or {},
-          { kubernetes = { "manifests/**/*.yaml", "*.k8s.yaml" } }),
+        schemas = vim.tbl_extend(
+          "force",
+          ok_schemastore and schemastore.yaml.schemas() or {},
+          { kubernetes = { "manifests/**/*.yaml", "*.k8s.yaml" } }
+        ),
         validate = true,
         keyOrdering = false,
       },
     },
   }
 
-  -- Docker
-  vim.lsp.config.dockerls = {}
-
-  -- ESLint
-  vim.lsp.config.eslint = {
-    on_attach = function(_, bufnr)
-      -- Auto-fix on save:
-      vim.api.nvim_create_autocmd("BufWritePre", { buffer = bufnr, command = "EslintFixAll" })
+  -- ESLint: fix on save. nvim-lspconfig's lsp/eslint.lua creates the
+  -- :LspEslintFixAll command inside its own on_attach, so chain it via the
+  -- call form (which merges) — the assignment form would replace the base
+  -- on_attach and the command would never exist.
+  local base_eslint_on_attach = vim.lsp.config.eslint.on_attach
+  vim.lsp.config("eslint", {
+    on_attach = function(client, bufnr)
+      if base_eslint_on_attach then
+        base_eslint_on_attach(client, bufnr)
+      end
+      vim.api.nvim_create_autocmd("BufWritePre", {
+        group = augroup("EslintFixAll_" .. bufnr),
+        buffer = bufnr,
+        command = "LspEslintFixAll",
+      })
     end,
-  }
+  })
 
   -- Terraform (include Terragrunt .hcl files)
   vim.lsp.config.terraformls = {
@@ -247,45 +325,55 @@ M.defaults = function()
         },
         staticcheck = true,
         gofumpt = true,
+        -- gopls sends no inlay hints unless asked, which made the
+        -- <leader>th toggle a no-op in Go buffers
+        hints = {
+          parameterNames = true,
+          assignVariableTypes = true,
+          compositeLiteralFields = true,
+          constantValues = true,
+          rangeVariableTypes = true,
+        },
       },
     },
   }
 
   -- Bash (prefer workspace-pinned shellcheck if present)
-  local workspace_shellcheck = workspace and (workspace .. "/tools/dotslash/bin/shellcheck") or ""
   vim.lsp.config.bashls = {
     settings = {
       bashIde = {
-        shellcheckPath = vim.fn.filereadable(workspace_shellcheck) == 1 and workspace_shellcheck or "shellcheck",
+        shellcheckPath = workspace.find_work_tool "tools/dotslash/bin/shellcheck",
       },
     },
   }
 
-  -- CSS
-  vim.lsp.config.cssls = {}
-
-  -- HTML
-  vim.lsp.config.html = {}
-
   -- Tailwind CSS
   vim.lsp.config.tailwindcss = {
     filetypes = {
-      'html', 'css', 'scss', 'less', 'postcss',
-      'javascript', 'javascriptreact',
-      'typescript', 'typescriptreact',
-      'vue', 'svelte', 'templ',
+      "html",
+      "css",
+      "scss",
+      "less",
+      "postcss",
+      "javascript",
+      "javascriptreact",
+      "typescript",
+      "typescriptreact",
+      "vue",
+      "svelte",
+      "templ",
     },
     root_dir = function(bufnr, on_dir)
       local fname = vim.api.nvim_buf_get_name(bufnr)
       local root = vim.fs.find({
-        'tailwind.config.js',
-        'tailwind.config.cjs',
-        'tailwind.config.mjs',
-        'tailwind.config.ts',
-        'postcss.config.js',
-        'postcss.config.cjs',
-        'postcss.config.mjs',
-        'postcss.config.ts',
+        "tailwind.config.js",
+        "tailwind.config.cjs",
+        "tailwind.config.mjs",
+        "tailwind.config.ts",
+        "postcss.config.js",
+        "postcss.config.cjs",
+        "postcss.config.mjs",
+        "postcss.config.ts",
       }, { path = fname, upward = true })[1]
       on_dir(root and vim.fs.dirname(root) or nil)
     end,
@@ -302,7 +390,7 @@ M.defaults = function()
   vim.lsp.config.jsonnet_ls = {
     cmd = function(dispatchers, config)
       local root = config.root_dir or vim.fn.getcwd()
-      return vim.lsp.rpc.start({ 'jsonnet-language-server', '-J', root }, dispatchers)
+      return vim.lsp.rpc.start({ "jsonnet-language-server", "-J", root }, dispatchers)
     end,
   }
 
@@ -312,7 +400,7 @@ M.defaults = function()
   -- works regardless of where nvim was started from.
   vim.lsp.config.starpls = {
     cmd = function(dispatchers, config)
-      return vim.lsp.rpc.start({ 'starpls', 'server' }, dispatchers, {
+      return vim.lsp.rpc.start({ "starpls", "server" }, dispatchers, {
         cwd = config.root_dir or vim.fn.getcwd(),
       })
     end,
@@ -324,29 +412,7 @@ M.defaults = function()
   }
 
   -- Enable all configured LSP servers
-  local servers = {
-    'lua_ls',
-    'terraformls',
-    'bashls',
-    'tflint',
-    'basedpyright',
-    'vtsls',
-    'tailwindcss',
-    'emmet_ls',
-    'cssls',
-    'html',
-    'jsonls',
-    'yamlls',
-    'dockerls',
-    'eslint',
-    "gopls",
-    "jsonnet_ls",
-    "starpls",
-  }
-
-  for _, server in ipairs(servers) do
-    vim.lsp.enable(server)
-  end
+  vim.lsp.enable(servers)
 end
 
 return M

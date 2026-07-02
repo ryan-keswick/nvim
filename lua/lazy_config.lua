@@ -5,16 +5,6 @@ return {
   -- with `lazy = false` (e.g. the NvChad UI/theme plugins).
   defaults = { lazy = true },
 
-  -- Plugin installation settings.
-  install = {
-    -- Default colorscheme to install and use.
-    colorscheme = { "nightfox" },
-
-    -- Optional: Specify additional plugin installation behaviors.
-    -- Example: Automatically install missing plugins on startup.
-    -- missing = true,
-  },
-
   -- Performance optimizations: disable unused built-in rtp plugins for faster startup.
   performance = {
     rtp = {
@@ -30,7 +20,4 @@ return {
       },
     },
   },
-
-  -- Optional: Debugging settings for troubleshooting.
-  -- debug = false,
 }
