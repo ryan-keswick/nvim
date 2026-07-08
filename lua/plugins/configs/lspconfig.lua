@@ -1,5 +1,6 @@
--- Single source of truth for LSP servers: this list feeds both
--- mason-lspconfig's ensure_installed and vim.lsp.enable() in M.defaults().
+-- Single source of truth for enabled LSP servers. The list feeds
+-- vim.lsp.enable() in M.defaults(); mason-lspconfig installs all entries
+-- except the exact-version tools filtered below.
 -- mason-lspconfig v2 defaults automatic_enable to true, which would enable
 -- every installed server behind our back; it is turned off below so removing
 -- a name here actually disables the server.
@@ -28,18 +29,24 @@ local servers = {
   "cssls",
 }
 
+-- Ruff and TFLint are also installed in the shell from the same pinned Nix
+-- revision. Let mason-tool-installer reconcile their exact versions instead
+-- of racing mason-lspconfig's latest-version install on a fresh devbox.
+local mason_servers = vim.tbl_filter(function(server)
+  return server ~= "ruff" and server ~= "tflint"
+end, servers)
+
 require("mason").setup()
 require("mason-lspconfig").setup {
-  ensure_installed = servers,
+  ensure_installed = mason_servers,
   automatic_enable = false,
 }
 
--- conform's Go formatters and stylua live in Mason, but mason-lspconfig only
--- ever installs LSP servers, never formatters/linters. Declare them here so a
--- fresh devbox auto-installs them on first start (buildifier is provided by
--- nix; dprint/terraform/jsonnetfmt are repo-pinned via lua/workspace.lua).
+-- Non-LSP formatters and exact editor/shell tool versions managed by Mason.
 require("mason-tool-installer").setup {
   ensure_installed = {
+    { "ruff", version = "0.15.20" },
+    { "tflint", version = "v0.61.0" },
     "goimports",
     "gofumpt",
     "stylua",

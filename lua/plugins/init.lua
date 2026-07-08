@@ -1,3 +1,5 @@
+local fff_workspace = require("workspace").root
+
 return {
   "nvim-lua/plenary.nvim",
 
@@ -261,37 +263,42 @@ return {
       {
         "<leader>ff",
         function()
-          require("fff").find_files()
+          require("fff").find_files { cwd = fff_workspace }
         end,
         desc = "find files",
       },
       {
         "<leader>fw",
         function()
-          require("fff").live_grep()
+          require("fff").live_grep { cwd = fff_workspace }
         end,
         desc = "live grep",
       },
       {
         "<leader>fz",
         function()
-          require("fff").live_grep { grep = { modes = { "fuzzy", "plain" } } }
+          require("fff").live_grep {
+            cwd = fff_workspace,
+            grep = { modes = { "fuzzy", "plain" } },
+          }
         end,
         desc = "fuzzy grep",
       },
       {
         "<leader>fc",
         function()
-          require("fff").live_grep { query = vim.fn.expand "<cword>" }
+          require("fff").live_grep { cwd = fff_workspace, query = vim.fn.expand "<cword>" }
         end,
         desc = "grep current word",
       },
     },
     opts = {
+      base_path = fff_workspace,
       -- keep the bazel cache (~/.cache/bazel, reached via bazel-* symlinks) out of the index
       enable_home_dir_scanning = false,
       follow_symlinks = false,
       max_threads = vim.uv.available_parallelism(),
+      logging = { enabled = false },
       layout = {
         prompt_position = "top",
       },

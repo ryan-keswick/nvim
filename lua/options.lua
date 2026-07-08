@@ -69,7 +69,7 @@ o.splitbelow = true
 o.splitright = true
 o.timeoutlen = 400
 o.undofile = true
-o.swapfile = false -- undofile covers recovery; swapfiles just leave E325 prompts after unclean stops
+o.swapfile = true -- persistent undo covers saved history; swapfiles recover unsaved text after a crash
 
 -- interval for writing swap file to disk, also used by gitsigns
 o.updatetime = 250
@@ -102,15 +102,41 @@ api.nvim_create_autocmd("FileType", {
 -- Big-file guard: skip expensive expr folding/indenting for large files.
 -- (lua/plugins/ reads vim.g.bigfile_size too, to disable treesitter highlight.)
 g.bigfile_size = 256 * 1024
+local bigfile_group = api.nvim_create_augroup("UserBigFile", { clear = true })
+
+local function disable_bigfile_features(buf)
+  if not api.nvim_buf_is_valid(buf) then
+    return
+  end
+
+  api.nvim_set_option_value("indentexpr", "", { buf = buf })
+  for _, win in ipairs(vim.fn.win_findbuf(buf)) do
+    api.nvim_set_option_value("foldmethod", "manual", { win = win })
+    api.nvim_set_option_value("foldexpr", "", { win = win })
+  end
+end
+
 api.nvim_create_autocmd("BufReadPre", {
-  group = api.nvim_create_augroup("UserBigFile", { clear = true }),
+  group = bigfile_group,
   callback = function(args)
     local stat = vim.uv.fs_stat(args.match)
     if stat and stat.size > g.bigfile_size then
-      vim.opt_local.foldmethod = "manual"
-      vim.opt_local.foldexpr = ""
-      vim.opt_local.indentexpr = ""
+      vim.b[args.buf].bigfile = true
+      disable_bigfile_features(args.buf)
     end
+  end,
+})
+api.nvim_create_autocmd({ "FileType", "BufWinEnter" }, {
+  group = bigfile_group,
+  callback = function(args)
+    if not vim.b[args.buf].bigfile then
+      return
+    end
+    -- FileType plugins can restore indentexpr after BufReadPre, and a buffer
+    -- can later be displayed in a different window with its own fold options.
+    vim.schedule(function()
+      disable_bigfile_features(args.buf)
+    end)
   end,
 })
 

@@ -1,31 +1,15 @@
-local workspace = require "workspace"
-
--- Repo-pinned tool fallbacks, resolved once against ~/work (lua/workspace.lua).
--- The per-buffer `command` functions below search upward from the buffer
--- first so every repo formats with its own pinned tool; these fallbacks only
--- kick in for files outside a repo (bare tool name if no ~/work repo has it).
-local dprint_fallback = workspace.find_work_tool "tools/dprint/dprint"
-
--- `terraform fmt`: there is no bare `terraform` on PATH; repos ship a dotslash
--- shim at tools/dotslash/bin/terraform that reads stdin and formats fast.
--- Prefer that over the `tf` Bazel wrapper (which spins up Bazel on every
--- invocation — far too slow for format-on-save).
-local terraform_fallback = workspace.find_work_tool "tools/dotslash/bin/terraform"
-
--- Repo-pinned jsonnetfmt: some ~/work repos (e.g. k8s) ship a dotslash shim
--- at tools/dotslash/bin/jsonnetfmt and enforce a house style in CI — k8s runs
--- `jsonnetfmt --string-style d --comment-style s` (double quotes), gated by
--- build/verify/verify_fmt.sh. Without this, bare `jsonnetfmt` is unresolved
--- and format-on-save falls back to the language server, which defaults to
--- single quotes and fights CI on every save.
-local jsonnetfmt_fallback = workspace.find_work_tool "tools/dotslash/bin/jsonnetfmt"
-
--- Resolve a repo-pinned tool upward from the buffer's own directory (works
--- because vim.fs.find joins slash-containing names in upward mode), so a
--- buffer in repo A never formats with repo B's binary.
-local function repo_tool(relpath, fallback)
+-- Resolve tools only inside the buffer's own Git repository. Falling back to
+-- the first matching tool under ~/work can run a Canva wrapper from k8s or
+-- infrastructure, where its Git-root lookup resolves the wrong binary.
+local function repo_tool(relpath)
+  local fallback = vim.fs.basename(relpath)
   return function(_, ctx)
-    return vim.fs.find(relpath, { path = ctx.dirname, upward = true })[1] or fallback
+    local root = vim.fs.root(ctx.dirname, ".git")
+    local candidate = root and vim.fs.joinpath(root, relpath)
+    if candidate and vim.fn.executable(candidate) == 1 then
+      return candidate
+    end
+    return fallback
   end
 end
 
@@ -76,13 +60,14 @@ return {
   },
   formatters = {
     dprint = {
-      command = repo_tool("tools/dprint/dprint", dprint_fallback),
+      command = repo_tool "tools/dprint/dprint",
+      require_cwd = true,
     },
     terraform_fmt = {
-      command = repo_tool("tools/dotslash/bin/terraform", terraform_fallback),
+      command = repo_tool "tools/dotslash/bin/terraform",
     },
     jsonnetfmt = {
-      command = repo_tool("tools/dotslash/bin/jsonnetfmt", jsonnetfmt_fallback),
+      command = repo_tool "tools/dotslash/bin/jsonnetfmt",
       prepend_args = { "--string-style", "d", "--comment-style", "s" },
     },
   },

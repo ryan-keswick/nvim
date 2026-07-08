@@ -1,9 +1,10 @@
 -- Shared ~/work repo/tool discovery. Coder devboxes check Canva repos out
--- under ~/work; several configs need the repo that ships a given marker file
--- (e.g. the bazel monorepo via tools/dprint/dprint) or a repo-pinned tool
--- binary. One cached readdir here replaces the scanners that used to be
--- duplicated across lspconfig.lua and conform.lua.
-local M = {}
+-- under ~/work; FFF uses the common root, while LSP settings can discover a
+-- repo-pinned tool such as tools/dotslash/bin/shellcheck. Cache the directory
+-- listing so repeated lookups do not rescan the workspace.
+local M = {
+  root = vim.fn.expand "~/work",
+}
 
 local repos
 
@@ -15,7 +16,7 @@ local function work_repos()
     return repos
   end
   repos = {}
-  local work = vim.fn.expand "~/work"
+  local work = M.root
   if vim.fn.isdirectory(work) ~= 1 then
     return repos
   end
