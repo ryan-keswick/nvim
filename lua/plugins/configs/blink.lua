@@ -7,14 +7,6 @@ return {
   snippets = { preset = "luasnip" },
 
   sources = {
-    default = { "lazydev", "lsp", "path", "snippets", "buffer" },
-    providers = {
-      lazydev = {
-        name = "LazyDev",
-        module = "lazydev.integrations.blink",
-        -- rank nvim-runtime completions above other lua sources
-        score_offset = 100,
-      },
-    },
+    default = { "lsp", "path", "snippets", "buffer" },
   },
 }

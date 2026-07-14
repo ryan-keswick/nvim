@@ -174,12 +174,27 @@ M.defaults = function()
 
   -- Lua
   vim.lsp.config.lua_ls = {
+    on_init = function(client)
+      -- Tree-sitter already handles semantic highlighting. Document-color
+      -- previews are not worth the tens-of-seconds LuaLS recomputation that
+      -- blocked more useful requests in this config.
+      client.server_capabilities.colorProvider = nil
+      client.server_capabilities.semanticTokensProvider = nil
+    end,
     settings = {
       Lua = {
-        diagnostics = { globals = { "vim" } },
+        runtime = {
+          version = "LuaJIT",
+          path = { "lua/?.lua", "lua/?/init.lua" },
+        },
+        diagnostics = {
+          globals = { "vim" },
+          libraryFiles = "Disable",
+          workspaceEvent = "None",
+        },
         workspace = {
-          maxPreload = 100000,
-          preloadFileSize = 10000,
+          checkThirdParty = "Disable",
+          library = { vim.env.VIMRUNTIME },
         },
       },
     },
@@ -235,6 +250,7 @@ M.defaults = function()
   -- Ruff (lint + code actions to match CI; formatting stays dprint, and
   -- hover stays with basedpyright)
   vim.lsp.config("ruff", {
+    cmd = { "ruff", "server", "--quiet" },
     on_attach = function(client)
       client.server_capabilities.hoverProvider = false
     end,
@@ -316,9 +332,32 @@ M.defaults = function()
   })
 
   -- Terraform (include Terragrunt .hcl files)
+  local base_terraformls_on_attach = vim.lsp.config.terraformls.on_attach
   vim.lsp.config.terraformls = {
+    cmd = { "terraform-ls", "serve", "-log-file", "/dev/null" },
     filetypes = { "terraform", "terraform-vars", "hcl" },
     root_dir = tf_module_root,
+    on_attach = function(client, bufnr)
+      -- nvim-lspconfig's current callback uses the newer enable() API. Keep
+      -- that callback on newer Neovim builds and emulate it on this pinned
+      -- build, which only exposes refresh().
+      if vim.lsp.codelens.enable then
+        if base_terraformls_on_attach then
+          base_terraformls_on_attach(client, bufnr)
+        end
+        return
+      end
+
+      local refresh = function()
+        vim.lsp.codelens.refresh { bufnr = bufnr }
+      end
+      vim.api.nvim_create_autocmd({ "BufEnter", "CursorHold", "InsertLeave" }, {
+        group = augroup("TerraformCodeLens_" .. bufnr),
+        buffer = bufnr,
+        callback = refresh,
+      })
+      vim.schedule(refresh)
+    end,
   }
 
   -- Go (disable gopackagesdriver — bazel workspace causes issues with default driver)
@@ -397,7 +436,7 @@ M.defaults = function()
   vim.lsp.config.jsonnet_ls = {
     cmd = function(dispatchers, config)
       local root = config.root_dir or vim.fn.getcwd()
-      return vim.lsp.rpc.start({ "jsonnet-language-server", "-J", root }, dispatchers)
+      return vim.lsp.rpc.start({ "jsonnet-language-server", "-l", "fatal", "-J", root }, dispatchers)
     end,
   }
 
@@ -415,6 +454,11 @@ M.defaults = function()
 
   -- TFLint (Terraform linter)
   vim.lsp.config.tflint = {
+    -- The langserver writes every JSON-RPC payload, including complete source
+    -- buffers, to stderr with no usable log-level switch. Neovim records all
+    -- server stderr as errors, so discard this verbose stream only; process
+    -- exits and diagnostics still travel through the LSP transport.
+    cmd = { "sh", "-c", "exec tflint --langserver 2>/dev/null" },
     root_dir = tf_module_root,
   }
 

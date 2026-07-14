@@ -130,7 +130,8 @@ return {
         build = "make install_jsregexp",
         dependencies = { "rafamadriz/friendly-snippets" },
         config = function()
-          require("luasnip.loaders.from_vscode").lazy_load()
+          local snippets = require("lazy.core.config").plugins["friendly-snippets"].dir
+          require("luasnip.loaders.from_vscode").lazy_load { paths = { snippets } }
         end,
       },
     },
@@ -334,8 +335,6 @@ return {
   },
 
   { "windwp/nvim-autopairs", event = "InsertEnter", opts = {} },
-
-  { "folke/lazydev.nvim", ft = "lua", opts = {} },
 
   {
     "folke/todo-comments.nvim",
