@@ -13,6 +13,9 @@ return {
 
   {
     "nvchad/base46",
+    -- v2.5 (the old default branch) lacks integrations like flash; without a
+    -- pin, Lazy tracks the clone's cached origin/HEAD and can downgrade.
+    branch = "v3.0",
     -- lazy: startup highlights come from the compiled cache (init.lua dofiles
     -- base46_cache); the module itself is only required on theme switch.
     build = function()
