@@ -69,6 +69,24 @@ local function tf_module_root(bufnr, on_dir)
   on_dir(vim.fs.dirname(fname))
 end
 
+-- A stray ~/.git directory is enough for the default Python root markers to
+-- treat the whole home directory as a workspace and recursively scan every
+-- checkout under ~/work. Preserve each server's marker priority, but only start
+-- for a marked root outside HOME; markerless buffers are skipped instead of
+-- letting a rootless server inherit Neovim's broad working directory.
+local function python_root_dir(root_markers)
+  local home = vim.fs.normalize(assert(vim.env.HOME))
+  local markers = vim.deepcopy(assert(root_markers))
+
+  return function(bufnr, on_dir)
+    local root = vim.fs.root(bufnr, markers)
+    if not root or vim.fs.normalize(root) == home then
+      return
+    end
+    on_dir(root)
+  end
+end
+
 local M = {}
 local map = vim.keymap.set
 
@@ -204,8 +222,12 @@ M.defaults = function()
   -- venv when checked out, else whatever python3 is on PATH.
   local fallback_venv = canva_workspace and (canva_workspace .. "/.venv/bin/python") or ""
   local fallback_python = vim.fn.filereadable(fallback_venv) == 1 and fallback_venv or vim.fn.exepath "python3"
+  local basedpyright_root_dir = python_root_dir(vim.lsp.config.basedpyright.root_markers)
+  local ruff_root_dir = python_root_dir(vim.lsp.config.ruff.root_markers)
 
   vim.lsp.config.basedpyright = {
+    root_dir = basedpyright_root_dir,
+    workspace_required = true,
     -- node defaults to a ~4GB old-space heap; indexing the canva monorepo blows
     -- past it and the langserver dies with "JavaScript heap out of memory"
     -- (exit 250). Raise the limit - the box has plenty of RAM.
@@ -251,6 +273,8 @@ M.defaults = function()
   -- hover stays with basedpyright)
   vim.lsp.config("ruff", {
     cmd = { "ruff", "server", "--quiet" },
+    root_dir = ruff_root_dir,
+    workspace_required = true,
     on_attach = function(client)
       client.server_capabilities.hoverProvider = false
     end,
