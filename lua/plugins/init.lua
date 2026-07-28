@@ -1,4 +1,4 @@
-local fff_workspace = require("workspace").root
+local workspace = require "workspace"
 
 return {
   "nvim-lua/plenary.nvim",
@@ -267,14 +267,14 @@ return {
       {
         "<leader>ff",
         function()
-          require("fff").find_files { cwd = fff_workspace }
+          require("fff").find_files { cwd = workspace.project_root() }
         end,
         desc = "find files",
       },
       {
         "<leader>fw",
         function()
-          require("fff").live_grep { cwd = fff_workspace }
+          require("fff").live_grep { cwd = workspace.project_root() }
         end,
         desc = "live grep",
       },
@@ -282,7 +282,7 @@ return {
         "<leader>fz",
         function()
           require("fff").live_grep {
-            cwd = fff_workspace,
+            cwd = workspace.project_root(),
             grep = { modes = { "fuzzy", "plain" } },
           }
         end,
@@ -291,22 +291,45 @@ return {
       {
         "<leader>fc",
         function()
-          require("fff").live_grep { cwd = fff_workspace, query = vim.fn.expand "<cword>" }
+          require("fff").live_grep { cwd = workspace.project_root(), query = vim.fn.expand "<cword>" }
         end,
         desc = "grep current word",
       },
     },
-    opts = {
-      base_path = fff_workspace,
-      -- keep the bazel cache (~/.cache/bazel, reached via bazel-* symlinks) out of the index
-      enable_home_dir_scanning = false,
-      follow_symlinks = false,
-      max_threads = vim.uv.available_parallelism(),
-      logging = { enabled = false },
-      layout = {
-        prompt_position = "top",
-      },
-    },
+    opts = function()
+      return {
+        base_path = workspace.project_root(),
+        -- Keep the bazel cache (~/.cache/bazel, reached via bazel-* symlinks)
+        -- out of the index and avoid all-core filename scoring.
+        enable_home_dir_scanning = false,
+        follow_symlinks = false,
+        max_threads = 4,
+        logging = { enabled = false },
+        layout = {
+          prompt_position = "top",
+        },
+      }
+    end,
+    config = function(_, opts)
+      require("fff").setup(opts)
+
+      -- FFF also changes its index on DirChanged. Resolve those paths through
+      -- the same guard as the picker entry points so :cd ~/work (or HOME's
+      -- stray .git directory) cannot restore an aggregate workspace index.
+      local core = require "fff.core"
+      if not core._workspace_root_guarded then
+        local change_indexing_directory = core.change_indexing_directory
+        core.change_indexing_directory = function(path)
+          local root = workspace.project_root(path)
+          if not root then
+            vim.notify("FFF: refusing to index broad root " .. tostring(path), vim.log.levels.WARN)
+            return false
+          end
+          return change_indexing_directory(root)
+        end
+        core._workspace_root_guarded = true
+      end
+    end,
   },
 
   {
