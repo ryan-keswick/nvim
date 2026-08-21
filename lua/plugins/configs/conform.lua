@@ -53,6 +53,7 @@ return {
     toml = { "dprint" },
     yaml = { "dprint" },
     bzl = { "buildifier" },
+    starlark = { "buildifier" },
     terraform = { "terraform_fmt" },
     ["terraform-vars"] = { "terraform_fmt" },
     hcl = { "terraform_fmt" },

@@ -8,10 +8,15 @@ return {
   filesystem_watchers = {
     enable = true,
     ignore_dirs = {
+      "/.ccls-cache",
+      "/build",
+      "/node_modules",
+      "/target",
+      "/.zig-cache",
       "/.cache/bazel/",
-      "bazel%-out",
-      "bazel%-bin",
-      "bazel%-testlogs",
+      "bazel-out",
+      "bazel-bin",
+      "bazel-testlogs",
     },
   },
   hijack_cursor = true,

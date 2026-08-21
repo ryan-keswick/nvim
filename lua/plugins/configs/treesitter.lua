@@ -1,7 +1,9 @@
 -- nvim-treesitter main-branch API: require("nvim-treesitter.configs") is gone.
 -- install() only downloads/compiles parsers (async, skips already-installed);
 -- highlight and indent are enabled per buffer by the FileType autocmd below.
-require("nvim-treesitter").install {
+local treesitter = require "nvim-treesitter"
+
+local parsers = {
   "bash",
   "css",
   "csv",
@@ -40,6 +42,22 @@ require("nvim-treesitter").install {
   "xml",
   "yaml",
 }
+
+local installed = {}
+for _, parser in ipairs(treesitter.get_installed "parsers") do
+  installed[parser] = true
+end
+
+local missing = {}
+for _, parser in ipairs(parsers) do
+  if not installed[parser] then
+    missing[#missing + 1] = parser
+  end
+end
+
+if #missing > 0 then
+  treesitter.install(missing)
+end
 
 -- Treesitter indent is notoriously wrong for these; keep the builtin indent.
 local no_ts_indent = { python = true, yaml = true }

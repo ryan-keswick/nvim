@@ -118,10 +118,26 @@ M.on_attach = function(_, bufnr)
   end, opts "Toggle inlay hints")
 end
 
--- capabilities: blink.cmp, falling back to plain client capabilities when it
--- is absent (mid-bootstrap fresh install, headless).
-local ok_blink, blink = pcall(require, "blink.cmp")
-M.capabilities = ok_blink and blink.get_lsp_capabilities() or vim.lsp.protocol.make_client_capabilities()
+-- Keep Blink lazy while advertising its completion capabilities to LSP servers.
+M.capabilities = vim.lsp.protocol.make_client_capabilities()
+local completion_capabilities = M.capabilities.textDocument.completion
+completion_capabilities.completionItem.resolveSupport.properties = {
+  "documentation",
+  "detail",
+  "additionalTextEdits",
+  "command",
+  "data",
+}
+completion_capabilities.completionItem.insertTextModeSupport = { valueSet = { 1 } }
+completion_capabilities.completionItem.labelDetailsSupport = true
+completion_capabilities.completionList.itemDefaults = {
+  "commitCharacters",
+  "editRange",
+  "insertTextFormat",
+  "insertTextMode",
+  "data",
+}
+completion_capabilities.insertTextMode = 1
 
 -- defaults
 M.defaults = function()
@@ -174,10 +190,10 @@ M.defaults = function()
     end,
   })
 
-  -- Set default config for all LSP servers
-  vim.lsp.config["*"] = {
+  -- Merge defaults so existing shared LSP settings stay intact.
+  vim.lsp.config("*", {
     capabilities = M.capabilities,
-  }
+  })
 
   -- Diagnostics (0.12 ships with virtual_text off by default)
   vim.diagnostic.config {
@@ -387,7 +403,7 @@ M.defaults = function()
   -- Go (disable gopackagesdriver — bazel workspace causes issues with default driver)
   vim.lsp.config.gopls = {
     filetypes = { "go", "gomod", "gosum", "gowork", "gotmpl" },
-    cmd_env = { GOPACKAGESDRIVER = "" },
+    cmd_env = { GOPACKAGESDRIVER = "off" },
     settings = {
       gopls = {
         analyses = {
@@ -464,11 +480,12 @@ M.defaults = function()
     end,
   }
 
-  -- Starlark / Bazel (BUILD, .bzl, WORKSPACE)
+  -- Starlark / Bazel (BUILD, .bzl, .star, WORKSPACE)
   -- starpls shells out to `bazel info`, which requires CWD to be inside a
   -- Bazel workspace. Launch starpls with cmd_cwd = root_dir so `bazel info`
   -- works regardless of where nvim was started from.
   vim.lsp.config.starpls = {
+    filetypes = { "bzl", "starlark" },
     cmd = function(dispatchers, config)
       return vim.lsp.rpc.start({ "starpls", "server" }, dispatchers, {
         cwd = config.root_dir or vim.fn.getcwd(),

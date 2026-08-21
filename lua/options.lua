@@ -143,7 +143,15 @@ api.nvim_create_autocmd({ "FileType", "BufWinEnter" }, {
 -- Auto-reload files changed outside nvim (other tmux panes, git, agents).
 -- 0.12 ships no default checktime autocmd.
 local autoread = api.nvim_create_augroup("UserAutoRead", { clear = true })
-api.nvim_create_autocmd({ "FocusGained", "BufEnter", "TermLeave" }, {
+api.nvim_create_autocmd("BufEnter", {
+  group = autoread,
+  callback = function(args)
+    if vim.bo[args.buf].buftype == "" and vim.bo[args.buf].modifiable then
+      vim.cmd("checktime " .. args.buf)
+    end
+  end,
+})
+api.nvim_create_autocmd({ "FocusGained", "TermLeave" }, {
   group = autoread,
   callback = function()
     if vim.bo.buftype == "" and vim.bo.modifiable then
